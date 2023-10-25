@@ -1,0 +1,31 @@
+---
+
+server:
+  port: 8210
+
+connection:
+  invitation:
+    validDuration: 10000h
+    deepLink: https://links.theheroapp.co/
+  db:
+    address: 5432
+    schema: hero_connection
+    database: hero-api
+    username: root
+    password: password
+
+user:
+  db:
+    address: 5432
+    schema: hero_user
+    database: hero-api
+    username: root
+    password: password
+
+
+  auth:
+    issuer: magicx-ai
+    keyID: keyID
+    key: some-key
+    validDuration: 100h
+    refreshTokenExpiryDuration: 100h
