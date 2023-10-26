@@ -1,0 +1,106 @@
+definitions:
+  auth_handler.GoogleToken:
+    properties:
+      accessToken:
+        type: string
+      idToken:
+        type: string
+      refreshToken:
+        type: string
+    type: object
+  auth_handler.ProviderToken:
+    properties:
+      googleToken:
+        $ref: '#/definitions/auth_handler.GoogleToken'
+    type: object
+  auth_handler.SignUpDetails:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+      userName:
+        type: string
+    type: object
+  auth_handler.SignupOrLoginRequest:
+    properties:
+      deviceId:
+        type: string
+      deviceOs:
+        type: string
+      providerToken:
+        $ref: '#/definitions/auth_handler.ProviderToken'
+      signUpDetails:
+        allOf:
+        - $ref: '#/definitions/auth_handler.SignUpDetails'
+        description: 'TODO: will be removed once SSO integrated'
+    type: object
+  auth_handler.SignupOrLoginResponse:
+    properties:
+      authToken:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      image:
+        type: string
+      refreshToken:
+        type: string
+      userName:
+        type: string
+    type: object
+  user_handler.GetUserResponse:
+    properties:
+      avatar:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      userName:
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /auth/signup-or-login:
+    post:
+      consumes:
+      - application/json
+      description: signup or login
+      parameters:
+      - description: signup or login
+        in: body
+        name: signupOrLogin
+        required: true
+        schema:
+          $ref: '#/definitions/auth_handler.SignupOrLoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/auth_handler.SignupOrLoginResponse'
+      summary: Signup Or Login
+  /user:
+    get:
+      consumes:
+      - application/json
+      description: get user
+      parameters:
+      - description: Authoriztion
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/user_handler.GetUserResponse'
+      summary: Get user
+swagger: "2.0"

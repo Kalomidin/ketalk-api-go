@@ -1,0 +1,35 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Project specific
+bin/
+k8s-config/
+log
+configs/dev.yaml
+configs/defaults.yaml
+configs/*overrides.*
+configs/certs/
+
+# Visual studio code files
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+.history/
+
+# IntelliJ
+*.iml
+.idea
+!.idea/watcherTasks.xml
+
+# Mac os general
+.DS_Store
+.AppleDouble
+.LSOverride
+*tags*
