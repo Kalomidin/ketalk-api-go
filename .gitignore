@@ -10,7 +10,6 @@ bin/
 k8s-config/
 log
 configs/dev.yaml
-configs/defaults.yaml
 configs/*overrides.*
 configs/certs/
 

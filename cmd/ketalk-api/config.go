@@ -19,6 +19,7 @@ type ServerConfig struct {
 func (cfg *Config) Load() error {
 	dir := "configs"
 	files := []string{
+		"dev.yaml",
 		"defaults.yaml",
 	}
 	for _, file := range files {
