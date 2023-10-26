@@ -294,3 +294,36 @@ func (m *itemManager) GetPurchasedItems(ctx context.Context, req GetPurchasedIte
 	}
 	return resp, nil
 }
+
+func (m *itemManager) UpdateItem(ctx context.Context, req UpdateItemRequest) (*UpdateItemResponse, error) {
+	item, err := m.itemRepository.GetItem(ctx, req.ItemID)
+	if err != nil {
+		return nil, err
+	}
+
+	if item.OwnerID != req.UserID {
+		return nil, fmt.Errorf("user is not owner of item")
+	}
+	if req.IsHidden != nil {
+		item.IsHidden = *req.IsHidden
+	}
+	if req.ItemStatus != nil {
+		item.ItemStatus = string(*req.ItemStatus)
+	}
+	if req.Title != nil {
+		item.Title = *req.Title
+	}
+	if req.Description != nil {
+		item.Description = *req.Description
+	}
+	if req.Price != nil {
+		item.Price = *req.Price
+	}
+	if req.Negotiable != nil {
+		item.Negotiable = *req.Negotiable
+	}
+	if err := m.itemRepository.Update(ctx, item); err != nil {
+		return nil, err
+	}
+	return &UpdateItemResponse{}, nil
+}

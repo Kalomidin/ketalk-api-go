@@ -12,3 +12,8 @@ config:
     key: some-key
     validDuration: 100h
     refreshTokenExpiryDuration: 100h
+  azure:
+    accountName: ketalkstorage
+    accountKey: HSonEGmTFP/v3J/JOKpdYUjWjs1S85vqeFU4uFLEyA8W1FhS7HyFt0XQ+VOV+5ls1d6ReaKTgbAt+ASthO7PtQ==
+    containerName: profile-image
+    frontDoorUrl: ketalk1234-fsf0cjd3bygsdfct.z01.azurefd.net

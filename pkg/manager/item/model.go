@@ -2,6 +2,7 @@ package item_manager
 
 import (
 	"context"
+	"fmt"
 	"ketalk-api/common"
 	"time"
 
@@ -113,6 +114,20 @@ type GetPurchasedItemsRequest struct {
 	UserID uuid.UUID
 }
 
+type UpdateItemRequest struct {
+	UserID      uuid.UUID
+	ItemID      uuid.UUID
+	IsHidden    *bool
+	ItemStatus  *ItemStatus
+	Title       *string
+	Description *string
+	Price       *uint32
+	Negotiable  *bool
+}
+
+type UpdateItemResponse struct {
+}
+
 type ItemManager interface {
 	AddItem(ctx context.Context, item AddItemRequest) (*AddItemResponse, error)
 	UploadItemImages(ctx context.Context, req UploadItemImagesRequest) (*UploadItemImagesResponse, error)
@@ -122,6 +137,7 @@ type ItemManager interface {
 	GetUserItems(ctx context.Context, req GetUserItemsRequest) ([]ItemBlock, error)
 	FavoriteItem(ctx context.Context, req FavoriteItemRequest) (*FavoriteItemResponse, error)
 	GetPurchasedItems(ctx context.Context, req GetPurchasedItemsRequest) ([]ItemBlock, error)
+	UpdateItem(ctx context.Context, req UpdateItemRequest) (*UpdateItemResponse, error)
 }
 
 type ItemStatus string
@@ -131,3 +147,15 @@ const (
 	ItemStatusSold     ItemStatus = "Sold"
 	ItemStatusReserved ItemStatus = "Reserved"
 )
+
+var ErrInvalidItemStatus = fmt.Errorf("invalid item status")
+
+func ParseItemStatus(itemStatus string) (*ItemStatus, error) {
+	switch ItemStatus(itemStatus) {
+	case ItemStatusActive, ItemStatusReserved, ItemStatusSold:
+		itemStatus := ItemStatus(itemStatus)
+		return &itemStatus, nil
+	default:
+		return nil, ErrInvalidItemStatus
+	}
+}

@@ -11,4 +11,5 @@ type ItemHandler interface {
 	FavoriteItem(ctx *gin.Context, req FavoriteItemRequest) (*FavoriteItemResponse, error)
 	GetUserItems(ctx *gin.Context) (*GetUserItemsResponse, error)
 	GetPurchasedItems(ctx *gin.Context) (*GetPurchasedItemsResponse, error)
+	UpdateItem(ctx *gin.Context, req UpdateItemRequest) (*UpdateItemResponse, error)
 }

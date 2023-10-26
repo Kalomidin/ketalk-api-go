@@ -34,18 +34,19 @@ func NewHttpHandler(ctx context.Context, h ItemHandler, middleware common.Middle
 func (c *HttpHandler) Init(ctx context.Context, router *gin.Engine) {
 	routes := map[string]map[string]common.HandlerFunc{
 		"POST": {
-			"":              c.CreateItem,
-			"/:id/favorite": c.FavoriteItem,
+			"":              c.middleware.HandlerWithAuth(c.CreateItem),
+			"/:id/favorite": c.middleware.HandlerWithAuth(c.FavoriteItem),
 		},
 		"PUT": {
-			"/image/upload": c.UploadItemImages,
+			"/image/upload": c.middleware.HandlerWithAuth(c.UploadItemImages),
+			"/:id":          c.middleware.HandlerWithAuth(c.UpdateItem),
 		},
 		"GET": {
-			"/all/:geofenceId": c.GetItems,
-			"/:id":             c.GetItem,
-			"/favorite":        c.GetFavoriteItems,
-			"/purchase":        c.GetPurchasedItems,
-			"/user":            c.GetUserItems,
+			"/all/:geofenceId": c.middleware.HandlerWithAuth(c.GetItems),
+			"/:id":             c.middleware.HandlerWithAuth(c.GetItem),
+			"/favorite":        c.middleware.HandlerWithAuth(c.GetFavoriteItems),
+			"/purchase":        c.middleware.HandlerWithAuth(c.GetPurchasedItems),
+			"/user":            c.middleware.HandlerWithAuth(c.GetUserItems),
 		},
 	}
 	for method, route := range routes {

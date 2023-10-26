@@ -29,6 +29,7 @@ type Item struct {
 
 type ItemRepository interface {
 	AddItem(ctx context.Context, item *Item) error
+	Update(ctx context.Context, item *Item) error
 	GetItems(ctx context.Context, GeofenceID uint32, userID uuid.UUID) ([]Item, error)
 	GetUserItems(ctx context.Context, userID uuid.UUID) ([]Item, error)
 	GetItem(ctx context.Context, itemId uuid.UUID) (*Item, error)
