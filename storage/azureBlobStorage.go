@@ -11,10 +11,12 @@ import (
 type AzureBlobStorage interface {
 	GeneratePresignedUrlToUpload(imageUrl string) (string, error)
 	GeneratePresignedUrlToRead(imageUrl string) (string, error)
+	GetFrontDoorUrl(imageName string) string
 }
 
 type AzureBlobStorageConfig struct {
 	AccountName   string `yaml:"accountName" env:"AZURE_BLOB_ACCOUNT_NAME" env-default:""`
+	FrontDoorUrl  string `yaml:"frontDoorUrl" env:"AZURE_BLOB_FRONT_DOOR_URL" env-default:""`
 	AccountKey    string `yaml:"accountKey" env:"AZURE_BLOB_ACCOUNT_KEY" env-default:""`
 	ContainerName string `yaml:"containerName" env:"AZURE_BLOB_CONTAINER_NAME" env-default:""`
 }
@@ -35,6 +37,10 @@ func (az *azureBlobStorage) GeneratePresignedUrlToUpload(imageName string) (stri
 
 func (az *azureBlobStorage) GeneratePresignedUrlToRead(imageName string) (string, error) {
 	return az.generatePresignedUrl(imageName, azblob.BlobSASPermissions{Read: true, Permissions: true})
+}
+
+func (az *azureBlobStorage) GetFrontDoorUrl(imageName string) string {
+	return fmt.Sprintf("http://%s/%s/%s", az.FrontDoorUrl, az.ContainerName, imageName)
 }
 
 func (az *azureBlobStorage) generatePresignedUrl(imageName string, accessPolicy azblob.BlobSASPermissions) (string, error) {

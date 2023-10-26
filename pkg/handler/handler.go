@@ -45,14 +45,16 @@ func InitHandlers(ctx context.Context, ginEngine *gin.Engine, cfg config.Config)
 	if err != nil {
 		return err
 	}
+	blobStorage := storage.NewAzureBlobStorage(cfg.AzureBlobStorage)
 
 	userRepo := user_repo.NewRepository(ctx, db)
 	authRepo := auth_repo.NewRepository(ctx, db)
 	itemRepo := item_repo.NewItemRepository(ctx, db)
 	itemImageRepo := item_repo.NewItemImageRepository(ctx, db)
+	userItemRepo := item_repo.NewUserItemRepository(db)
 
 	// run migrations
-	if err := runMigrations(db, &cfg.DB, userRepo, authRepo, itemRepo, itemImageRepo); err != nil {
+	if err := runMigrations(db, &cfg.DB, userRepo, authRepo, itemRepo, itemImageRepo, userItemRepo); err != nil {
 		return err
 	}
 
@@ -64,12 +66,10 @@ func InitHandlers(ctx context.Context, ginEngine *gin.Engine, cfg config.Config)
 	authManager := auth_manager.NewAuthManager(authRepo, userPort, providerClient, cfg.Auth)
 	authHandler := auth_handler.NewHandler(authManager)
 
-	userManager := user_manager.NewUserManager(userRepo)
+	userManager := user_manager.NewUserManager(userRepo, blobStorage)
 	userHandler := user_handler.NewHandler(userManager)
 
-	blobStorage := storage.NewAzureBlobStorage(cfg.AzureBlobStorage)
-
-	itemManager := item_manager.NewItemManager(itemRepo, itemImageRepo, blobStorage)
+	itemManager := item_manager.NewItemManager(itemRepo, itemImageRepo, userItemRepo, userPort, blobStorage)
 	itemHandler := item_handler.NewHandler(itemManager)
 
 	authHttpHandler := auth_handler.NewHttpHandler(ctx, authHandler, middleware)
@@ -89,6 +89,7 @@ func runMigrations(db *gorm.DB,
 	userRepo user_repo.Repository, authRepo auth_repo.Repository,
 	itemRepo item_repo.ItemRepository,
 	itemImageRepo item_repo.ItemImageRepository,
+	userItemRepo item_repo.UserItemRepository,
 ) error {
 	if resp := db.Exec(fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s", dbConfig.GetSchema())); resp.Error != nil {
 		return resp.Error
@@ -107,6 +108,11 @@ func runMigrations(db *gorm.DB,
 		return err
 	}
 	err = itemImageRepo.Migrate()
+	if err != nil {
+		return err
+	}
+
+	err = userItemRepo.Migrate()
 	if err != nil {
 		return err
 	}

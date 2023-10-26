@@ -34,13 +34,18 @@ func NewHttpHandler(ctx context.Context, h ItemHandler, middleware common.Middle
 func (c *HttpHandler) Init(ctx context.Context, router *gin.Engine) {
 	routes := map[string]map[string]common.HandlerFunc{
 		"POST": {
-			"": c.CreateItem,
+			"":              c.CreateItem,
+			"/:id/favorite": c.FavoriteItem,
 		},
 		"PUT": {
 			"/image/upload": c.UploadItemImages,
 		},
 		"GET": {
-			"/:geofenceId": c.GetItems,
+			"/all/:geofenceId": c.GetItems,
+			"/:id":             c.GetItem,
+			"/favorite":        c.GetFavoriteItems,
+			"/purchase":        c.GetPurchasedItems,
+			"/user":            c.GetUserItems,
 		},
 	}
 	for method, route := range routes {

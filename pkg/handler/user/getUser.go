@@ -36,7 +36,7 @@ func (h *handler) GetUser(ctx *gin.Context) (*GetUserResponse, error) {
 	if err != nil {
 		return nil, err
 	}
-	user, err := h.service.GetUser(ctx, userID)
+	user, err := h.manager.GetUser(ctx, userID)
 	if err != nil {
 		return nil, err
 	}

@@ -2,18 +2,22 @@ package user_manager
 
 import (
 	"context"
+	"fmt"
 	"ketalk-api/pkg/manager/user/repository"
+	"ketalk-api/storage"
 
 	"github.com/google/uuid"
 )
 
 type userManager struct {
-	repository repository.Repository
+	repository       repository.Repository
+	azureBlobStorage storage.AzureBlobStorage
 }
 
-func NewUserManager(repository repository.Repository) UserManager {
+func NewUserManager(repository repository.Repository, azureBlobStorage storage.AzureBlobStorage) UserManager {
 	return &userManager{
 		repository,
+		azureBlobStorage,
 	}
 }
 
@@ -22,11 +26,48 @@ func (m *userManager) GetUser(ctx context.Context, userID uuid.UUID) (*User, err
 	if err != nil {
 		return nil, err
 	}
+	url := m.azureBlobStorage.GetFrontDoorUrl(*user.Image)
+	return &User{
+		ID:       user.ID,
+		Username: user.Username,
+		Email:    user.Email,
+		Image:    &url,
+	}, nil
+}
+
+func (m *userManager) Update(ctx context.Context, req UpdateUserRequest) (*User, error) {
+	if req.Name == nil && req.Image == nil {
+		return nil, fmt.Errorf("empty update request is not allowed")
+	}
+	user, err := m.repository.GetUser(ctx, req.UserID)
+	if err != nil {
+		return nil, err
+	}
+	if req.Name != nil {
+		user.Username = *req.Name
+	}
+	if req.Image != nil {
+		user.Image = req.Image
+	}
+	if err := m.repository.UpdateUser(ctx, user); err != nil {
+		return nil, err
+	}
 	return &User{
 		ID:       user.ID,
 		Username: user.Username,
 		Email:    user.Email,
 		Image:    user.Image,
-		Password: user.Password,
+	}, nil
+}
+
+func (m *userManager) GetPresignedUrl(ctx context.Context, req GetPresignedUrlRequest) (*GetPresignedUrlResponse, error) {
+	blob := fmt.Sprintf("%s/%s", req.UserID, uuid.New())
+	url, err := m.azureBlobStorage.GeneratePresignedUrlToUpload(blob)
+	if err != nil {
+		return nil, err
+	}
+	return &GetPresignedUrlResponse{
+		Url:       url,
+		ImageName: blob,
 	}, nil
 }

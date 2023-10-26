@@ -2,6 +2,7 @@ package item_handler
 
 import (
 	"fmt"
+	"ketalk-api/common"
 	item_manager "ketalk-api/pkg/manager/item"
 	"net/http"
 	"strconv"
@@ -11,21 +12,22 @@ import (
 )
 
 type GetItemsResponse struct {
-	Items []Item `json:"items"`
+	Items []ItemBlock `json:"items"`
 }
 
-type Item struct {
+type ItemBlock struct {
 	ID            uuid.UUID `json:"id"`
 	Title         string    `json:"title"`
 	Description   string    `json:"description"`
 	Price         uint32    `json:"price"`
 	OwnerID       uuid.UUID `json:"ownerId"`
-	FavoriteCount uint32    `json:"favoriteCount"`
-	MessageCount  uint32    `json:"messageCount"`
-	SeenCount     uint32    `json:"seenCount"`
 	ItemStatus    string    `json:"itemStatus"`
 	CreatedAt     int64     `json:"createdAt"`
 	Thumbnail     string    `json:"thumbnail"`
+	IsHidden      bool      `json:"isHidden"`
+	FavoriteCount uint32    `json:"favoriteCount"`
+	MessageCount  uint32    `json:"messageCount"`
+	SeenCount     uint32    `json:"seenCount"`
 }
 
 func (h *HttpHandler) GetItems(ctx *gin.Context, r *http.Request) (interface{}, error) {
@@ -38,19 +40,25 @@ func (h *handler) GetItems(ctx *gin.Context) (*GetItemsResponse, error) {
 	if err != nil {
 		return nil, err
 	}
+	userID, err := common.GetUserId(ctx.Request.Context())
+	if err != nil {
+		return nil, err
+	}
+
 	if geofenceID < 0 {
 		return nil, fmt.Errorf("invalid geofence id: %d", geofenceID)
 	}
 	req := item_manager.GetItemsRequest{
 		GeofenceID: uint32(geofenceID),
+		UserID:     userID,
 	}
 	resp, err := h.manager.GetItems(ctx, req)
 	if err != nil {
 		return nil, err
 	}
-	var items []Item = make([]Item, len(resp))
+	var items []ItemBlock = make([]ItemBlock, len(resp))
 	for i, item := range resp {
-		items[i] = Item{
+		items[i] = ItemBlock{
 			ID:            item.ID,
 			Title:         item.Title,
 			Description:   item.Description,
@@ -62,6 +70,7 @@ func (h *handler) GetItems(ctx *gin.Context) (*GetItemsResponse, error) {
 			ItemStatus:    string(item.ItemStatus),
 			CreatedAt:     item.CreatedAt.UTC().Unix(),
 			Thumbnail:     item.Thumbnail,
+			IsHidden:      item.IsHidden,
 		}
 	}
 	return &GetItemsResponse{

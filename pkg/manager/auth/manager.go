@@ -60,12 +60,15 @@ func (m *authManager) SignupOrLogin(ctx context.Context, req SignupOrLoginReques
 		Email:    email,
 		Image:    image,
 	}
+	if req.SignUpDetails != nil {
+		createUserReq.Password = &req.SignUpDetails.Password
+	}
 	user, err := m.userPort.CreateOrGetUser(ctx, createUserReq)
 	if err != nil {
 		return nil, err
 	}
 
-	if user.Password != nil && req.SignUpDetails != nil && user.Password != &req.SignUpDetails.Password {
+	if user.Password != nil && req.SignUpDetails != nil && *user.Password != req.SignUpDetails.Password {
 		return nil, fmt.Errorf("invalid password")
 	}
 

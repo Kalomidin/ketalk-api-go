@@ -29,7 +29,9 @@ type Item struct {
 
 type ItemRepository interface {
 	AddItem(ctx context.Context, item *Item) error
-	GetItems(ctx context.Context, GeofenceID uint32) ([]Item, error)
+	GetItems(ctx context.Context, GeofenceID uint32, userID uuid.UUID) ([]Item, error)
+	GetUserItems(ctx context.Context, userID uuid.UUID) ([]Item, error)
+	GetItem(ctx context.Context, itemId uuid.UUID) (*Item, error)
 	Migrate() error
 }
 
@@ -42,10 +44,28 @@ type ItemImage struct {
 	common.CreatedUpdatedDeleted
 }
 
+type UserItem struct {
+	ID          uuid.UUID `gorm:"primaryKey;default:gen_random_uuid()"`
+	UserID      uuid.UUID
+	ItemID      uuid.UUID
+	IsFavorite  bool
+	IsPurchased bool
+	common.CreatedUpdatedDeleted
+}
+
 type ItemImageRepository interface {
 	GetItemImages(ctx context.Context, itemID uuid.UUID) ([]ItemImage, error)
 	AddItemImages(ctx context.Context, itemID uuid.UUID, images []ItemImage) error
 	GetItemThumbnail(ctx context.Context, itemID uuid.UUID) (ItemImage, error)
 	UpdateItemImagesToUploaded(ctx context.Context, itemID uuid.UUID, imageIds []uuid.UUID) error
+	Migrate() error
+}
+
+type UserItemRepository interface {
+	Insert(ctx context.Context, userItem *UserItem) error
+	Update(ctx context.Context, userItem *UserItem) error
+	GetUserItem(ctx context.Context, userID uuid.UUID, itemID uuid.UUID) (*UserItem, error)
+	GetUserFavoriteItems(ctx context.Context, userID uuid.UUID) ([]Item, error)
+	GetPurchasedItems(ctx context.Context, userID uuid.UUID) ([]Item, error)
 	Migrate() error
 }

@@ -4,20 +4,27 @@ import (
 	"context"
 	"fmt"
 	"ketalk-api/pkg/manager/item/repository"
+	"ketalk-api/pkg/manager/port"
 	"ketalk-api/storage"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 type itemManager struct {
 	itemRepository      repository.ItemRepository
 	itemImageRepository repository.ItemImageRepository
+	userItemRepository  repository.UserItemRepository
+	userPort            port.UserPort
 	blobStorage         storage.AzureBlobStorage
 }
 
-func NewItemManager(itemRepository repository.ItemRepository, itemImageRepository repository.ItemImageRepository, azureBlobStorage storage.AzureBlobStorage) ItemManager {
+func NewItemManager(itemRepository repository.ItemRepository, itemImageRepository repository.ItemImageRepository, userItemRepository repository.UserItemRepository, userPort port.UserPort, azureBlobStorage storage.AzureBlobStorage) ItemManager {
 	return &itemManager{
 		itemRepository,
 		itemImageRepository,
+		userItemRepository,
+		userPort,
 		azureBlobStorage,
 	}
 }
@@ -73,22 +80,20 @@ func (m *itemManager) AddItem(ctx context.Context, item AddItemRequest) (*AddIte
 	}, nil
 }
 
-func (m *itemManager) GetItems(ctx context.Context, req GetItemsRequest) ([]Item, error) {
-	items, err := m.itemRepository.GetItems(ctx, req.GeofenceID)
+func (m *itemManager) GetItems(ctx context.Context, req GetItemsRequest) ([]ItemBlock, error) {
+	items, err := m.itemRepository.GetItems(ctx, req.GeofenceID, req.UserID)
 	if err != nil {
 		return nil, err
 	}
-	var resp []Item
+	var resp []ItemBlock
 	for _, item := range items {
 		image, err := m.itemImageRepository.GetItemThumbnail(ctx, item.ID)
 		if err != nil {
 			continue
 		}
-		thumbnail, err := m.blobStorage.GeneratePresignedUrlToRead(image.Key)
-		if err != nil {
-			continue
-		}
-		resp = append(resp, Item{
+		thumbnail := m.blobStorage.GetFrontDoorUrl(image.Key)
+
+		resp = append(resp, ItemBlock{
 			ID:            item.ID,
 			Title:         item.Title,
 			Description:   item.Description,
@@ -100,9 +105,70 @@ func (m *itemManager) GetItems(ctx context.Context, req GetItemsRequest) ([]Item
 			ItemStatus:    ItemStatus(item.ItemStatus),
 			CreatedAt:     item.CreatedAt,
 			Thumbnail:     thumbnail,
+			IsHidden:      item.IsHidden,
 		})
 	}
 	return resp, nil
+}
+
+func (m *itemManager) GetItem(ctx context.Context, req GetItemRequest) (*Item, error) {
+	item, err := m.itemRepository.GetItem(ctx, req.ItemID)
+	if err != nil {
+		return nil, err
+	}
+	if item.IsHidden && item.OwnerID != req.UserID {
+		return nil, fmt.Errorf("item is hidden")
+	}
+
+	itemImages, err := m.itemImageRepository.GetItemImages(ctx, item.ID)
+	if err != nil {
+		return nil, err
+	}
+	var images []string = make([]string, len(itemImages))
+	var thumbnail string
+	for i, image := range itemImages {
+		url := m.blobStorage.GetFrontDoorUrl(image.Key)
+		if image.IsCover {
+			thumbnail = url
+		}
+		images[i] = url
+	}
+
+	owner, err := m.userPort.GetUser(ctx, item.OwnerID)
+	if err != nil {
+		return nil, err
+	}
+	var ownerAvatar *string
+	if owner.Image != nil {
+		url := m.blobStorage.GetFrontDoorUrl(*owner.Image)
+		ownerAvatar = &url
+	}
+	isUserFavorite := false
+	userItem, err := m.userItemRepository.GetUserItem(ctx, req.UserID, item.ID)
+	if err == nil && userItem != nil {
+		isUserFavorite = userItem.IsFavorite
+	}
+	return &Item{
+		ID:          item.ID,
+		Title:       item.Title,
+		Description: item.Description,
+		Price:       item.Price,
+		Owner: ItemOwner{
+			ID:     owner.ID,
+			Name:   owner.Username,
+			Avatar: ownerAvatar,
+		},
+		FavoriteCount:  item.FavoriteCount,
+		MessageCount:   item.MessageCount,
+		SeenCount:      item.SeenCount,
+		ItemStatus:     ItemStatus(item.ItemStatus),
+		CreatedAt:      item.CreatedAt,
+		Thumbnail:      thumbnail,
+		Images:         images,
+		IsUserFavorite: isUserFavorite,
+		IsHidden:       item.IsHidden,
+		Negotiable:     item.Negotiable,
+	}, nil
 }
 
 func (m *itemManager) UploadItemImages(ctx context.Context, r UploadItemImagesRequest) (*UploadItemImagesResponse, error) {
@@ -111,4 +177,120 @@ func (m *itemManager) UploadItemImages(ctx context.Context, r UploadItemImagesRe
 	}
 
 	return &UploadItemImagesResponse{}, nil
+}
+
+func (m *itemManager) GetFavoriteItems(ctx context.Context, r GetFavoriteItemsRequest) ([]ItemBlock, error) {
+	items, err := m.userItemRepository.GetUserFavoriteItems(ctx, r.UserID)
+	if err != nil {
+		return nil, err
+	}
+	var resp []ItemBlock
+	for _, item := range items {
+		image, err := m.itemImageRepository.GetItemThumbnail(ctx, item.ID)
+		if err != nil {
+			continue
+		}
+		thumbnail := m.blobStorage.GetFrontDoorUrl(image.Key)
+
+		resp = append(resp, ItemBlock{
+			ID:            item.ID,
+			Title:         item.Title,
+			Description:   item.Description,
+			Price:         item.Price,
+			OwnerID:       item.OwnerID,
+			FavoriteCount: item.FavoriteCount,
+			MessageCount:  item.MessageCount,
+			SeenCount:     item.SeenCount,
+			ItemStatus:    ItemStatus(item.ItemStatus),
+			CreatedAt:     item.CreatedAt,
+			Thumbnail:     thumbnail,
+			IsHidden:      item.IsHidden,
+		})
+	}
+	return resp, nil
+}
+
+func (m *itemManager) FavoriteItem(ctx context.Context, req FavoriteItemRequest) (*FavoriteItemResponse, error) {
+	userItem, err := m.userItemRepository.GetUserItem(ctx, req.UserID, req.ItemID)
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return nil, err
+	}
+	if err == gorm.ErrRecordNotFound {
+		userItem = &repository.UserItem{
+			UserID:     req.UserID,
+			ItemID:     req.ItemID,
+			IsFavorite: req.IsFavorite,
+		}
+		if err := m.userItemRepository.Insert(ctx, userItem); err != nil {
+			return nil, err
+		}
+		return &FavoriteItemResponse{}, nil
+	}
+	userItem.IsFavorite = req.IsFavorite
+	if err := m.userItemRepository.Update(ctx, userItem); err != nil {
+		return nil, err
+	}
+	return &FavoriteItemResponse{}, nil
+}
+
+func (m *itemManager) GetUserItems(ctx context.Context, req GetUserItemsRequest) ([]ItemBlock, error) {
+	items, err := m.itemRepository.GetUserItems(ctx, req.UserID)
+	if err != nil {
+		return nil, err
+	}
+	var resp []ItemBlock
+	for _, item := range items {
+		image, err := m.itemImageRepository.GetItemThumbnail(ctx, item.ID)
+		if err != nil {
+			continue
+		}
+		thumbnail := m.blobStorage.GetFrontDoorUrl(image.Key)
+
+		resp = append(resp, ItemBlock{
+			ID:            item.ID,
+			Title:         item.Title,
+			Description:   item.Description,
+			Price:         item.Price,
+			OwnerID:       item.OwnerID,
+			FavoriteCount: item.FavoriteCount,
+			MessageCount:  item.MessageCount,
+			SeenCount:     item.SeenCount,
+			ItemStatus:    ItemStatus(item.ItemStatus),
+			CreatedAt:     item.CreatedAt,
+			Thumbnail:     thumbnail,
+			IsHidden:      item.IsHidden,
+		})
+	}
+	return resp, nil
+}
+
+func (m *itemManager) GetPurchasedItems(ctx context.Context, req GetPurchasedItemsRequest) ([]ItemBlock, error) {
+	items, err := m.userItemRepository.GetPurchasedItems(ctx, req.UserID)
+	if err != nil {
+		return nil, err
+	}
+	var resp []ItemBlock
+	for _, item := range items {
+		image, err := m.itemImageRepository.GetItemThumbnail(ctx, item.ID)
+		if err != nil {
+			continue
+		}
+		thumbnail := m.blobStorage.GetFrontDoorUrl(image.Key)
+
+		resp = append(resp, ItemBlock{
+			ID:            item.ID,
+			Title:         item.Title,
+			Description:   item.Description,
+			Price:         item.Price,
+			OwnerID:       item.OwnerID,
+			FavoriteCount: item.FavoriteCount,
+			MessageCount:  item.MessageCount,
+			SeenCount:     item.SeenCount,
+			ItemStatus:    ItemStatus(item.ItemStatus),
+			CreatedAt:     item.CreatedAt,
+			Thumbnail:     thumbnail,
+			IsHidden:      item.IsHidden,
+		})
+	}
+	return resp, nil
 }

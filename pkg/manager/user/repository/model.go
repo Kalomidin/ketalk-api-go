@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"ketalk-api/common"
 
 	"github.com/google/uuid"
@@ -13,4 +14,12 @@ type User struct {
 	Email    string
 	Password *string
 	common.CreatedUpdatedDeleted
+}
+
+type Repository interface {
+	CreateUser(ctx context.Context, user *User) error
+	GetUser(ctx context.Context, userId uuid.UUID) (*User, error)
+	GetUserByEmail(ctx context.Context, email string) (*User, error)
+	UpdateUser(ctx context.Context, user *User) error
+	MigrateUser() error
 }

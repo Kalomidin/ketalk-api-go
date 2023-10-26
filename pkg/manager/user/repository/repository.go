@@ -8,14 +8,6 @@ import (
 	"gorm.io/gorm"
 )
 
-type Repository interface {
-	CreateUser(ctx context.Context, user *User) error
-	GetUser(ctx context.Context, userId uuid.UUID) (*User, error)
-	GetUserByEmail(ctx context.Context, email string) (*User, error)
-	UpdateUser(ctx context.Context, user *User) error
-	MigrateUser() error
-}
-
 type repository struct {
 	*gorm.DB
 }
@@ -56,7 +48,7 @@ func (r *repository) GetUserByEmail(ctx context.Context, email string) (*User, e
 }
 
 func (r *repository) UpdateUser(ctx context.Context, user *User) error {
-	res := r.Updates(user)
+	res := r.Where("id = ?", user.ID).Updates(user)
 	if res.Error != nil {
 		return res.Error
 	}

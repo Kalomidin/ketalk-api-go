@@ -10,6 +10,7 @@ type CreateOrGetUserRequest struct {
 	Username string
 	Email    string
 	Image    *string
+	Password *string
 }
 
 type User struct {

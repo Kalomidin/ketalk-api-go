@@ -27,6 +27,7 @@ func (p *userPort) CreateOrGetUser(ctx context.Context, req port.CreateOrGetUser
 			ID:       user.ID,
 			Username: user.Username,
 			Email:    user.Email,
+			Password: user.Password,
 			Image:    user.Image,
 		}, nil
 	}
@@ -38,6 +39,7 @@ func (p *userPort) CreateOrGetUser(ctx context.Context, req port.CreateOrGetUser
 	user = &repository.User{
 		Username: req.Username,
 		Email:    req.Email,
+		Password: req.Password,
 		Image:    req.Image,
 	}
 	if err = p.userRepository.CreateUser(ctx, user); err != nil {
@@ -52,5 +54,14 @@ func (p *userPort) CreateOrGetUser(ctx context.Context, req port.CreateOrGetUser
 }
 
 func (p *userPort) GetUser(ctx context.Context, userId uuid.UUID) (*port.User, error) {
-	return nil, nil
+	user, err := p.userRepository.GetUser(ctx, userId)
+	if err != nil {
+		return nil, err
+	}
+	return &port.User{
+		ID:       user.ID,
+		Username: user.Username,
+		Email:    user.Email,
+		Image:    user.Image,
+	}, nil
 }

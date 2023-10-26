@@ -2,6 +2,7 @@ package item_manager
 
 import (
 	"context"
+	"ketalk-api/common"
 	"time"
 
 	"github.com/google/uuid"
@@ -34,7 +35,7 @@ type SignedUrlWithImageID struct {
 	Name      string
 }
 
-type Item struct {
+type ItemBlock struct {
 	ID            uuid.UUID
 	Title         string
 	Description   string
@@ -44,12 +45,39 @@ type Item struct {
 	MessageCount  uint32
 	SeenCount     uint32
 	ItemStatus    ItemStatus
+	IsHidden      bool
 	Thumbnail     string
 	CreatedAt     time.Time
 }
 
+type Item struct {
+	ID             uuid.UUID
+	Title          string
+	Description    string
+	Price          uint32
+	Owner          ItemOwner
+	FavoriteCount  uint32
+	MessageCount   uint32
+	SeenCount      uint32
+	ItemStatus     ItemStatus
+	Thumbnail      string
+	Images         []string
+	CreatedAt      time.Time
+	Negotiable     bool
+	IsHidden       bool
+	IsUserFavorite bool
+}
+
+type ItemOwner struct {
+	ID       uuid.UUID
+	Name     string
+	Avatar   *string
+	Location *common.Location
+}
+
 type GetItemsRequest struct {
 	GeofenceID uint32
+	UserID     uuid.UUID
 }
 
 type UploadItemImagesRequest struct {
@@ -60,10 +88,40 @@ type UploadItemImagesRequest struct {
 type UploadItemImagesResponse struct {
 }
 
+type GetItemRequest struct {
+	ItemID uuid.UUID
+	UserID uuid.UUID
+}
+
+type GetFavoriteItemsRequest struct {
+	UserID uuid.UUID
+}
+type FavoriteItemRequest struct {
+	UserID     uuid.UUID
+	ItemID     uuid.UUID
+	IsFavorite bool
+}
+
+type FavoriteItemResponse struct {
+}
+
+type GetUserItemsRequest struct {
+	UserID uuid.UUID
+}
+
+type GetPurchasedItemsRequest struct {
+	UserID uuid.UUID
+}
+
 type ItemManager interface {
 	AddItem(ctx context.Context, item AddItemRequest) (*AddItemResponse, error)
-	UploadItemImages(ctx context.Context, r UploadItemImagesRequest) (*UploadItemImagesResponse, error)
-	GetItems(ctx context.Context, req GetItemsRequest) ([]Item, error)
+	UploadItemImages(ctx context.Context, req UploadItemImagesRequest) (*UploadItemImagesResponse, error)
+	GetItems(ctx context.Context, req GetItemsRequest) ([]ItemBlock, error)
+	GetItem(ctx context.Context, req GetItemRequest) (*Item, error)
+	GetFavoriteItems(ctx context.Context, req GetFavoriteItemsRequest) ([]ItemBlock, error)
+	GetUserItems(ctx context.Context, req GetUserItemsRequest) ([]ItemBlock, error)
+	FavoriteItem(ctx context.Context, req FavoriteItemRequest) (*FavoriteItemResponse, error)
+	GetPurchasedItems(ctx context.Context, req GetPurchasedItemsRequest) ([]ItemBlock, error)
 }
 
 type ItemStatus string
