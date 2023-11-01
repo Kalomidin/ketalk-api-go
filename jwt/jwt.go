@@ -28,6 +28,7 @@ func GetJWTToken(ctx context.Context) (*JWTClaims, error) {
 	if token, ok := jwtToken.(JWTClaims); ok {
 		return &token, nil
 	}
+	fmt.Printf("token is not valid2, jwtToken: %+v\n", jwtToken)
 	return nil, fmt.Errorf("invalid token")
 }
 

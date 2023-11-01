@@ -26,12 +26,16 @@ func (m *userManager) GetUser(ctx context.Context, userID uuid.UUID) (*User, err
 	if err != nil {
 		return nil, err
 	}
-	url := m.azureBlobStorage.GetFrontDoorUrl(*user.Image)
+	var url *string
+	if user.Image != nil {
+		imageUrl := m.azureBlobStorage.GetFrontDoorUrl(*user.Image)
+		url = &imageUrl
+	}
 	return &User{
 		ID:       user.ID,
 		Username: user.Username,
 		Email:    user.Email,
-		Image:    &url,
+		Image:    url,
 	}, nil
 }
 

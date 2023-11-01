@@ -1,0 +1,135 @@
+package conn_redis
+
+import (
+	"context"
+	"fmt"
+	"log"
+	"math/big"
+	"sync"
+
+	"github.com/go-redis/redis/v8"
+	"github.com/google/uuid"
+)
+
+type Config struct {
+	Addr       string `yaml:"addr" env:"REDIS_ADDR" default:"localhost:6379"`
+	Password   string `yaml:"password" env:"REDIS_PASSWORD" default:""`
+	GroupCount int    `yaml:"groupCount" env:"REDIS_GROUP_COUNT" default:"1"`
+}
+
+type RedisClient interface {
+	AddMessage(ctx context.Context, groupID int, conversationID uuid.UUID, message interface{}) error
+	Handle(ctx context.Context, callback RedisMessageHandler, handlerName string) error
+	GetGroupID(conversationID uuid.UUID) int
+}
+
+type redisClient struct {
+	client   *redis.Client
+	cfg      Config
+	groupIds []int
+}
+
+func Init(ctx context.Context, cfg Config) (RedisClient, error) {
+	conn := redis.NewClient(&redis.Options{
+		Addr:     cfg.Addr,
+		Password: cfg.Password,
+		DB:       0,
+	})
+
+	pong, err := conn.Ping(ctx).Result()
+	if err != nil {
+		log.Printf("failed to connect to redis: %v\n", err)
+		return nil, err
+	}
+	log.Printf("connected to redis: %v\n", pong)
+
+	var groupIds []int = make([]int, cfg.GroupCount)
+	for i := 0; i < cfg.GroupCount; i++ {
+		groupIds[i] = i
+	}
+
+	redisClient := redisClient{
+		client:   conn,
+		cfg:      cfg,
+		groupIds: groupIds,
+	}
+	return &redisClient, nil
+}
+
+func (c *redisClient) AddMessage(ctx context.Context, groupID int, conversationID uuid.UUID, message interface{}) error {
+	// check  if group exists
+	if !contains(c.groupIds, groupID) {
+		return fmt.Errorf("group with id: %+v does not exist", groupID)
+	}
+
+	// publish message
+	key := fmt.Sprintf("group%+v", groupID)
+	fmt.Printf("publishing message: %+v\n", message)
+	if err := c.client.Publish(ctx, key, message).Err(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *redisClient) Handle(ctx context.Context, callback RedisMessageHandler, handlerName string) error {
+	fmt.Printf("subs for handling redis messages is running\n")
+
+	var wg sync.WaitGroup
+
+	var subs []*redis.PubSub = make([]*redis.PubSub, c.cfg.GroupCount)
+
+	for i, groupId := range c.groupIds {
+		key := fmt.Sprintf("group%+v", groupId)
+		sub := c.client.Subscribe(ctx, key)
+		subs[i] = sub
+
+		wg.Add(1)
+		fmt.Printf("running sub with groupId: %+v\n", key)
+
+		go func(sub *redis.PubSub) {
+			defer wg.Done()
+			ch := sub.Channel()
+			for msg := range ch {
+				fmt.Printf("received message from redis: %+v, name: %+v\n", msg, handlerName)
+				if err := callback(ctx, msg.Payload); err != nil {
+					// TODO: handle error properly
+					log.Printf("failed to handle message: %v\n", err)
+
+					return
+				}
+			}
+
+		}(sub)
+	}
+
+	wg.Wait()
+
+	for _, sub := range subs {
+		if err := sub.Close(); err != nil {
+			fmt.Printf("failed to close sub: %+v\n", err)
+		}
+	}
+	return nil
+}
+
+func (c *redisClient) GetGroupID(conversationID uuid.UUID) int {
+	intValue := new(big.Int)
+	intValue.SetBytes(conversationID[:])
+
+	group := new(big.Int)
+	group.Mod(intValue, big.NewInt(int64(c.cfg.GroupCount)))
+
+	return int(group.Int64())
+}
+
+type RedisMessageHandler func(ctx context.Context, mes string) error
+
+func contains(s []int, e int) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
+}

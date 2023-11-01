@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"fmt"
 	"ketalk-api/common"
 	"ketalk-api/jwt"
@@ -27,6 +28,7 @@ func (m *middleware) AuthMiddleware(cfg jwt.Config) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		req := ctx.Request
 		token := req.Header.Get("Authorization")
+		fmt.Printf("token: %s\n", token)
 		if token == "" {
 			// continue if no authorization provided
 			fmt.Println("continue without token")
@@ -52,13 +54,14 @@ func (m *middleware) AuthMiddleware(cfg jwt.Config) gin.HandlerFunc {
 	}
 }
 
-func (m *middleware) ValidateUserAuthorization(ctx *gin.Context) error {
-	tokenData, err := jwt.GetJWTToken(ctx.Request.Context())
+func (m *middleware) ValidateUserAuthorization(ctx context.Context) error {
+	tokenData, err := jwt.GetJWTToken(ctx)
 	if err != nil {
 		return err
 	}
 	userId, err := uuid.Parse(tokenData.Subject)
 	if err != nil {
+		fmt.Println("token is not valid1")
 		return fmt.Errorf("invalid token")
 	}
 	_, err = m.userPort.GetUser(ctx, userId)
@@ -70,7 +73,7 @@ func (m *middleware) ValidateUserAuthorization(ctx *gin.Context) error {
 
 func (m *middleware) HandlerWithAuth(handler common.HandlerFunc) common.HandlerFunc {
 	return func(ctx *gin.Context, req *http.Request) (interface{}, error) {
-		err := m.ValidateUserAuthorization(ctx)
+		err := m.ValidateUserAuthorization(req.Context())
 		if err != nil {
 			return nil, err
 		}

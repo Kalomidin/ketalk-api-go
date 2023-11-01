@@ -15,6 +15,7 @@ import (
 
 	_ "ketalk-api/docs"
 	"ketalk-api/pkg/handler"
+	conn_redis "ketalk-api/pkg/manager/conversation/redis"
 )
 
 func main() {
@@ -44,13 +45,18 @@ func main() {
 func run(ctx context.Context, cfg Config) error {
 	router := gin.Default()
 
+	redis, err := conn_redis.Init(ctx, cfg.Config.Redis)
+	if err != nil {
+		return err
+	}
+
 	middleware, err := handler.NewMiddleware(ctx, &cfg.Config.DB)
 	if err != nil {
 		return err
 	}
 	router.Use(middleware.AuthMiddleware(cfg.Config.Auth))
 
-	if err := handler.InitHandlers(ctx, router, cfg.Config); err != nil {
+	if err := handler.InitHandlers(ctx, middleware, redis, router, cfg.Config); err != nil {
 		return err
 	}
 
