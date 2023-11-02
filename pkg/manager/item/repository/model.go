@@ -75,7 +75,9 @@ type UserItemRepository interface {
 	Update(ctx context.Context, userItem *UserItem) error
 	GetUserItem(ctx context.Context, userID uuid.UUID, itemID uuid.UUID) (*UserItem, error)
 	GetUserFavoriteItems(ctx context.Context, userID uuid.UUID) ([]Item, error)
+	PurchaseItem(ctx context.Context, userID uuid.UUID, itemID uuid.UUID) error
 	GetPurchasedItems(ctx context.Context, userID uuid.UUID) ([]Item, error)
+	GetItemBuyer(ctx context.Context, itemID uuid.UUID) ([]UserItem, error)
 	Migrate() error
 }
 

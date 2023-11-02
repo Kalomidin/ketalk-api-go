@@ -16,4 +16,6 @@ type ItemHandler interface {
 	GetAllKarats(ctx *gin.Context) (*GetAllKaratsResponse, error)
 	GetAllCategories(ctx *gin.Context) (*GetAllCategoriesResponse, error)
 	GetSimilarItems(ctx *gin.Context) (*GetSimilarItemsResponse, error)
+	GetItemBuyers(ctx *gin.Context) (*GetItemBuyersResponse, error)
+	CreatePurchase(ctx *gin.Context, req CreatePurchaseRequest) (*CreatePurchaseResponse, error)
 }

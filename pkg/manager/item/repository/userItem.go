@@ -78,6 +78,30 @@ func (r *userItemRepository) GetUserItem(ctx context.Context, userID uuid.UUID, 
 	return &userItem, nil
 }
 
+func (r *userItemRepository) PurchaseItem(ctx context.Context, userID uuid.UUID, itemID uuid.UUID) error {
+	res := r.Model(&UserItem{}).
+		Where("user_id = ? and item_id = ?", userID, itemID).
+		Update("is_purchased", true)
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected != 1 {
+		return common.ErrMoreThanOneRowUpdated
+	}
+	return nil
+}
+
+func (r *userItemRepository) GetItemBuyer(ctx context.Context, itemID uuid.UUID) ([]UserItem, error) {
+	var userItems []UserItem = make([]UserItem, 0)
+	resp := r.Model(&UserItem{}).
+		Where("item_id = ? and is_purchased = ?", itemID, true).
+		Find(&userItems)
+	if resp.Error != nil {
+		return nil, resp.Error
+	}
+	return userItems, nil
+}
+
 func (r *userItemRepository) Migrate() error {
 	return r.AutoMigrate(&UserItem{})
 }

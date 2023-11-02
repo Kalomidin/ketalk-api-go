@@ -89,6 +89,7 @@ func InitHandlers(
 
 	userPort := user_manager.NewUserPort(userRepo)
 	itemPort := item_manager.NewItemPort(itemRepo, itemImageRepo)
+	conversationPort := conversation_manager.NewConversationPort(conversationRepo, messageRepo, memberRepo)
 
 	googleClient := google.NewGoogleClient(cfg.Google)
 	providerClient := provider.NewProviderClient(googleClient)
@@ -99,7 +100,7 @@ func InitHandlers(
 	userManager := user_manager.NewUserManager(userRepo, blobStorage)
 	userHandler := user_handler.NewHandler(userManager)
 
-	itemManager := item_manager.NewItemManager(itemRepo, itemImageRepo, userItemRepo, karatRepo, categoryRepo, userPort, blobStorage)
+	itemManager := item_manager.NewItemManager(itemRepo, itemImageRepo, userItemRepo, karatRepo, categoryRepo, userPort, conversationPort, blobStorage)
 	itemHandler := item_handler.NewHandler(itemManager)
 
 	authHttpHandler := auth_handler.NewHttpHandler(ctx, authHandler, middleware)

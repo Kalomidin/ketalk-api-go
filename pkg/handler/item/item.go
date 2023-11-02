@@ -36,6 +36,7 @@ func (c *HttpHandler) Init(ctx context.Context, router *gin.Engine) {
 		"POST": {
 			"":              c.middleware.HandlerWithAuth(c.CreateItem),
 			"/:id/favorite": c.middleware.HandlerWithAuth(c.FavoriteItem),
+			"/:id/purchase": c.middleware.HandlerWithAuth(c.CreatePurchase),
 		},
 		"PUT": {
 			"/image/upload":              c.middleware.HandlerWithAuth(c.UploadItemImages),
@@ -51,6 +52,7 @@ func (c *HttpHandler) Init(ctx context.Context, router *gin.Engine) {
 			"/karats":          c.GetAllKarats,
 			"/categories":      c.GetAllCategories,
 			"/:id/similar":     c.GetSimilarItems,
+			"/:id/buyer":       c.middleware.HandlerWithAuth(c.GetItemBuyers),
 		},
 	}
 	for method, route := range routes {

@@ -18,10 +18,11 @@ type itemManager struct {
 	karatRepository     repository.KaratRepository
 	categoryRepository  repository.CategoryRepository
 	userPort            port.UserPort
+	conversationPort    port.ConversationPort
 	blobStorage         storage.AzureBlobStorage
 }
 
-func NewItemManager(itemRepository repository.ItemRepository, itemImageRepository repository.ItemImageRepository, userItemRepository repository.UserItemRepository, karatRepository repository.KaratRepository, categoryRepository repository.CategoryRepository, userPort port.UserPort, azureBlobStorage storage.AzureBlobStorage) ItemManager {
+func NewItemManager(itemRepository repository.ItemRepository, itemImageRepository repository.ItemImageRepository, userItemRepository repository.UserItemRepository, karatRepository repository.KaratRepository, categoryRepository repository.CategoryRepository, userPort port.UserPort, conversationPort port.ConversationPort, azureBlobStorage storage.AzureBlobStorage) ItemManager {
 	return &itemManager{
 		itemRepository,
 		itemImageRepository,
@@ -29,6 +30,7 @@ func NewItemManager(itemRepository repository.ItemRepository, itemImageRepositor
 		karatRepository,
 		categoryRepository,
 		userPort,
+		conversationPort,
 		azureBlobStorage,
 	}
 }
@@ -303,6 +305,16 @@ func (m *itemManager) UpdateItem(ctx context.Context, req UpdateItemRequest) (*U
 		item.IsHidden = *req.IsHidden
 	}
 	if req.ItemStatus != nil {
+		if item.ItemStatus == string(ItemStatusSold) {
+			// check if we have already a buyer
+			_, err = m.userItemRepository.GetItemBuyer(ctx, req.ItemID)
+			if err != nil && err != gorm.ErrRecordNotFound {
+				return nil, err
+			}
+			if err == nil {
+				return nil, fmt.Errorf("item is already sold")
+			}
+		}
 		item.ItemStatus = string(*req.ItemStatus)
 	}
 	if req.Title != nil {
@@ -374,33 +386,6 @@ func (m *itemManager) GetAllCategories(ctx context.Context) ([]Category, error) 
 	return resp, nil
 }
 
-func (m *itemManager) repoItemIntoItemBlocks(ctx context.Context, repoItems []repository.Item) []ItemBlock {
-	var userOtherItems []ItemBlock = make([]ItemBlock, len(repoItems))
-	for i, item := range repoItems {
-		image, err := m.itemImageRepository.GetItemThumbnail(ctx, item.ID)
-		if err != nil {
-			continue
-		}
-		thumbnail := m.blobStorage.GetFrontDoorUrl(image.Key)
-
-		userOtherItems[i] = ItemBlock{
-			ID:            item.ID,
-			Title:         item.Title,
-			Description:   item.Description,
-			Price:         item.Price,
-			OwnerID:       item.OwnerID,
-			FavoriteCount: item.FavoriteCount,
-			MessageCount:  item.MessageCount,
-			SeenCount:     item.SeenCount,
-			ItemStatus:    ItemStatus(item.ItemStatus),
-			CreatedAt:     item.CreatedAt,
-			Thumbnail:     thumbnail,
-			IsHidden:      item.IsHidden,
-		}
-	}
-	return userOtherItems
-}
-
 func (m *itemManager) GetSimilarItems(ctx context.Context, req GetSimilarItemsRequest) (*GetSimilarItemsResponse, error) {
 	item, err := m.itemRepository.GetItem(ctx, req.ItemID)
 	if err != nil {
@@ -428,10 +413,104 @@ func (m *itemManager) GetSimilarItems(ctx context.Context, req GetSimilarItemsRe
 		}
 		suggestedItems = m.repoItemIntoItemBlocks(ctx, repoSuggestedItems)
 	}
-	fmt.Printf("total length of suggested items: %d\n", len(suggestedItems))
-	fmt.Printf("total length of other user items: %d\n", len(otherUserItems))
+
 	return &GetSimilarItemsResponse{
 		SuggestedItems: suggestedItems,
 		OtherUserItems: otherUserItems,
 	}, nil
+}
+
+func (m *itemManager) GetItemBuyers(ctx context.Context, req GetItemBuyersRequest) ([]ItemBuyer, error) {
+	item, err := m.itemRepository.GetItem(ctx, req.ItemID)
+	if err != nil {
+		return nil, err
+	}
+
+	conversations, err := m.conversationPort.GetItemConversations(ctx, req.ItemID)
+	if err != nil {
+		return nil, err
+	}
+	var resp []ItemBuyer = make([]ItemBuyer, len(conversations))
+	for i, conversation := range conversations {
+		var member port.Member
+		for _, m := range conversation.Members {
+			if member.MemberID == item.OwnerID {
+				continue
+			}
+			member = m
+		}
+		user, err := m.userPort.GetUser(ctx, member.MemberID)
+		if err != nil {
+			continue
+		}
+		var avatar *string
+		if user.Image != nil {
+			url := m.blobStorage.GetFrontDoorUrl(*user.Image)
+			avatar = &url
+		}
+		resp[i] = ItemBuyer{
+			ID:             conversation.ID,
+			Name:           user.Username,
+			Avatar:         avatar,
+			LastMessagedAt: conversation.LastMessagedAt,
+		}
+	}
+	return resp, nil
+}
+
+func (m *itemManager) CreatePurchase(ctx context.Context, req CreatePurchaseRequest) (*CreatePurchaseResponse, error) {
+	userItem, err := m.userItemRepository.GetUserItem(ctx, req.BuyerID, req.ItemID)
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return nil, err
+	}
+	if err == gorm.ErrRecordNotFound {
+		userItem = &repository.UserItem{
+			UserID:      req.BuyerID,
+			ItemID:      req.ItemID,
+			IsPurchased: true,
+		}
+		if err := m.userItemRepository.Insert(ctx, userItem); err != nil {
+			return nil, err
+		}
+		return &CreatePurchaseResponse{
+			ItemID:  req.ItemID,
+			BuyerID: req.BuyerID,
+		}, nil
+	} else {
+		userItem.IsPurchased = true
+		if err := m.userItemRepository.Update(ctx, userItem); err != nil {
+			return nil, err
+		}
+		return &CreatePurchaseResponse{
+			ItemID:  req.ItemID,
+			BuyerID: req.BuyerID,
+		}, nil
+	}
+}
+
+func (m *itemManager) repoItemIntoItemBlocks(ctx context.Context, repoItems []repository.Item) []ItemBlock {
+	var userOtherItems []ItemBlock = make([]ItemBlock, len(repoItems))
+	for i, item := range repoItems {
+		image, err := m.itemImageRepository.GetItemThumbnail(ctx, item.ID)
+		if err != nil {
+			continue
+		}
+		thumbnail := m.blobStorage.GetFrontDoorUrl(image.Key)
+
+		userOtherItems[i] = ItemBlock{
+			ID:            item.ID,
+			Title:         item.Title,
+			Description:   item.Description,
+			Price:         item.Price,
+			OwnerID:       item.OwnerID,
+			FavoriteCount: item.FavoriteCount,
+			MessageCount:  item.MessageCount,
+			SeenCount:     item.SeenCount,
+			ItemStatus:    ItemStatus(item.ItemStatus),
+			CreatedAt:     item.CreatedAt,
+			Thumbnail:     thumbnail,
+			IsHidden:      item.IsHidden,
+		}
+	}
+	return userOtherItems
 }

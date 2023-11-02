@@ -14,7 +14,7 @@ var (
 
 type Error struct {
 	statusCode int
-	Errors     string `json:"errors"`
+	Errors     string `json:"error"`
 }
 
 func NewError(err error, status int) *Error {

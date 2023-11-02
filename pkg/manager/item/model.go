@@ -169,6 +169,27 @@ type GetSimilarItemsResponse struct {
 	OtherUserItems []ItemBlock
 }
 
+type ItemBuyer struct {
+	ID             uuid.UUID
+	Name           string
+	Avatar         *string
+	LastMessagedAt time.Time
+}
+
+type GetItemBuyersRequest struct {
+	ItemID uuid.UUID
+}
+
+type CreatePurchaseRequest struct {
+	ItemID  uuid.UUID
+	BuyerID uuid.UUID
+}
+
+type CreatePurchaseResponse struct {
+	ItemID  uuid.UUID
+	BuyerID uuid.UUID
+}
+
 type ItemManager interface {
 	AddItem(ctx context.Context, item AddItemRequest) (*AddItemResponse, error)
 	UploadItemImages(ctx context.Context, req UploadItemImagesRequest) (*UploadItemImagesResponse, error)
@@ -183,6 +204,8 @@ type ItemManager interface {
 	GetAllKarats(ctx context.Context) ([]Karat, error)
 	GetAllCategories(ctx context.Context) ([]Category, error)
 	GetSimilarItems(ctx context.Context, req GetSimilarItemsRequest) (*GetSimilarItemsResponse, error)
+	GetItemBuyers(ctx context.Context, req GetItemBuyersRequest) ([]ItemBuyer, error)
+	CreatePurchase(ctx context.Context, req CreatePurchaseRequest) (*CreatePurchaseResponse, error)
 }
 
 type ItemStatus string
