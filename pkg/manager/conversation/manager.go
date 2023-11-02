@@ -98,6 +98,11 @@ func (c *conversationManager) CreateConversation(ctx context.Context, request Cr
 		return nil, err
 	}
 
+	// update message count
+	if err := c.itemPort.IncrementMessageCount(ctx, request.ItemID); err != nil {
+		return nil, err
+	}
+
 	return &CreateConversationResponse{
 		ID:              conversation.ID,
 		SecondaryUserID: item.OwnerID,

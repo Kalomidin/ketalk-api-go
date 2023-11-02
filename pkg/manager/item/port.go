@@ -41,3 +41,7 @@ func (p *itemPort) GetCovertImage(ctx context.Context, itemID uuid.UUID) (string
 	}
 	return image.Key, nil
 }
+
+func (p *itemPort) IncrementMessageCount(ctx context.Context, itemID uuid.UUID) error {
+	return p.itemRepo.IncrementMessageCount(ctx, itemID)
+}

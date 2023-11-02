@@ -33,6 +33,10 @@ type ItemRepository interface {
 	GetItems(ctx context.Context, GeofenceID uint32, userID uuid.UUID) ([]Item, error)
 	GetUserItems(ctx context.Context, userID uuid.UUID) ([]Item, error)
 	GetItem(ctx context.Context, itemId uuid.UUID) (*Item, error)
+	IncrementFavoriteCount(ctx context.Context, itemId uuid.UUID) error
+	DecrementFavoriteCount(ctx context.Context, itemId uuid.UUID) error
+	IncrementMessageCount(ctx context.Context, itemId uuid.UUID) error
+	DecrementMessageCount(ctx context.Context, itemId uuid.UUID) error
 	Migrate() error
 }
 

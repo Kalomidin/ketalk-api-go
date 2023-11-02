@@ -88,15 +88,30 @@ func (s *WebSocketServer) serveWs(ctx *gin.Context, req *http.Request) (interfac
 	if err != nil {
 		return nil, err
 	}
+	user, err := s.userPort.GetUser(req.Context(), userId)
+	if err != nil {
+		return nil, err
+	}
+
+	// check if user is member of conversation
+	if members, err := s.memberRepo.GetMembers(ctx, conversationId); err != nil {
+		return nil, err
+	} else {
+		isMember := false
+		for _, member := range members {
+			if member.MemberID == userId {
+				isMember = true
+				break
+			}
+		}
+		if !isMember {
+			return nil, fmt.Errorf("user is not a member of conversation")
+		}
+	}
 
 	ws, err := s.upgrader.Upgrade(ctx.Writer, ctx.Request, nil)
 	if err != nil {
 		fmt.Printf("failed while upgrade: %+v\n", err)
-		return nil, err
-	}
-
-	user, err := s.userPort.GetUser(req.Context(), userId)
-	if err != nil {
 		return nil, err
 	}
 

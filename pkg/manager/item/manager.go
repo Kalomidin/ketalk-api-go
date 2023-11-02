@@ -225,10 +225,20 @@ func (m *itemManager) FavoriteItem(ctx context.Context, req FavoriteItemRequest)
 			return nil, err
 		}
 		return &FavoriteItemResponse{}, nil
+	} else {
+		userItem.IsFavorite = req.IsFavorite
+		if err := m.userItemRepository.Update(ctx, userItem); err != nil {
+			return nil, err
+		}
 	}
-	userItem.IsFavorite = req.IsFavorite
-	if err := m.userItemRepository.Update(ctx, userItem); err != nil {
-		return nil, err
+	if req.IsFavorite {
+		if err := m.itemRepository.IncrementFavoriteCount(ctx, req.ItemID); err != nil {
+			return nil, err
+		}
+	} else {
+		if err := m.itemRepository.DecrementFavoriteCount(ctx, req.ItemID); err != nil {
+			return nil, err
+		}
 	}
 	return &FavoriteItemResponse{}, nil
 }

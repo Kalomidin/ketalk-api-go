@@ -20,4 +20,5 @@ type Item struct {
 type ItemPort interface {
 	GetItem(ctx context.Context, itemId uuid.UUID) (*Item, error)
 	GetCovertImage(ctx context.Context, itemId uuid.UUID) (string, error)
+	IncrementMessageCount(ctx context.Context, itemId uuid.UUID) error
 }

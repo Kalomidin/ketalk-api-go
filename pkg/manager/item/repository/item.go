@@ -79,6 +79,22 @@ func (r *itemRepository) GetUserItems(ctx context.Context, userID uuid.UUID) ([]
 	return items, nil
 }
 
+func (r *itemRepository) IncrementFavoriteCount(ctx context.Context, itemID uuid.UUID) error {
+	return r.Model(&Item{}).Where("id = ?", itemID).Update("favorite_count", gorm.Expr("favorite_count + ?", 1)).Error
+}
+
+func (r *itemRepository) DecrementFavoriteCount(ctx context.Context, itemId uuid.UUID) error {
+	return r.Model(&Item{}).Where("id = ? AND favorite_count > 0", itemId).Update("favorite_count", gorm.Expr("favorite_count - ?", 1)).Error
+}
+
+func (r *itemRepository) IncrementMessageCount(ctx context.Context, itemId uuid.UUID) error {
+	return r.Model(&Item{}).Where("id = ?", itemId).Update("message_count", gorm.Expr("message_count + ?", 1)).Error
+}
+
+func (r *itemRepository) DecrementMessageCount(ctx context.Context, itemId uuid.UUID) error {
+	return r.Model(&Item{}).Where("id = ? AND message_count > 0", itemId).Update("message_count", gorm.Expr("message_count - ?", 1)).Error
+}
+
 func (r *itemRepository) Migrate() error {
 	return r.AutoMigrate(&Item{})
 }
