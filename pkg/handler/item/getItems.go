@@ -1,11 +1,9 @@
 package item_handler
 
 import (
-	"fmt"
 	"ketalk-api/common"
 	item_manager "ketalk-api/pkg/manager/item"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -36,20 +34,15 @@ func (h *HttpHandler) GetItems(ctx *gin.Context, r *http.Request) (interface{}, 
 }
 
 func (h *handler) GetItems(ctx *gin.Context) (*GetItemsResponse, error) {
-	geofenceID, err := strconv.Atoi(ctx.Param("geofenceId"))
-	if err != nil {
-		return nil, err
-	}
+	geofenceID := ctx.Param("geofenceId")
+
 	userID, err := common.GetUserId(ctx.Request.Context())
 	if err != nil {
 		return nil, err
 	}
 
-	if geofenceID < 0 {
-		return nil, fmt.Errorf("invalid geofence id: %d", geofenceID)
-	}
 	req := item_manager.GetItemsRequest{
-		GeofenceID: uint32(geofenceID),
+		GeofenceID: geofenceID,
 		UserID:     userID,
 	}
 	resp, err := h.manager.GetItems(ctx, req)

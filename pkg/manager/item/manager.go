@@ -15,15 +15,19 @@ type itemManager struct {
 	itemRepository      repository.ItemRepository
 	itemImageRepository repository.ItemImageRepository
 	userItemRepository  repository.UserItemRepository
+	karatRepository     repository.KaratRepository
+	categoryRepository  repository.CategoryRepository
 	userPort            port.UserPort
 	blobStorage         storage.AzureBlobStorage
 }
 
-func NewItemManager(itemRepository repository.ItemRepository, itemImageRepository repository.ItemImageRepository, userItemRepository repository.UserItemRepository, userPort port.UserPort, azureBlobStorage storage.AzureBlobStorage) ItemManager {
+func NewItemManager(itemRepository repository.ItemRepository, itemImageRepository repository.ItemImageRepository, userItemRepository repository.UserItemRepository, karatRepository repository.KaratRepository, categoryRepository repository.CategoryRepository, userPort port.UserPort, azureBlobStorage storage.AzureBlobStorage) ItemManager {
 	return &itemManager{
 		itemRepository,
 		itemImageRepository,
 		userItemRepository,
+		karatRepository,
+		categoryRepository,
 		userPort,
 		azureBlobStorage,
 	}
@@ -85,33 +89,11 @@ func (m *itemManager) GetItems(ctx context.Context, req GetItemsRequest) ([]Item
 	if err != nil {
 		return nil, err
 	}
-	var resp []ItemBlock
-	for _, item := range items {
-		image, err := m.itemImageRepository.GetItemThumbnail(ctx, item.ID)
-		if err != nil {
-			continue
-		}
-		thumbnail := m.blobStorage.GetFrontDoorUrl(image.Key)
 
-		resp = append(resp, ItemBlock{
-			ID:            item.ID,
-			Title:         item.Title,
-			Description:   item.Description,
-			Price:         item.Price,
-			OwnerID:       item.OwnerID,
-			FavoriteCount: item.FavoriteCount,
-			MessageCount:  item.MessageCount,
-			SeenCount:     item.SeenCount,
-			ItemStatus:    ItemStatus(item.ItemStatus),
-			CreatedAt:     item.CreatedAt,
-			Thumbnail:     thumbnail,
-			IsHidden:      item.IsHidden,
-		})
-	}
-	return resp, nil
+	return m.repoItemIntoItemBlocks(ctx, items), nil
 }
 
-func (m *itemManager) GetItem(ctx context.Context, req GetItemRequest) (*Item, error) {
+func (m *itemManager) GetItem(ctx context.Context, req GetItemRequest) (*GetItemResponse, error) {
 	item, err := m.itemRepository.GetItem(ctx, req.ItemID)
 	if err != nil {
 		return nil, err
@@ -148,26 +130,29 @@ func (m *itemManager) GetItem(ctx context.Context, req GetItemRequest) (*Item, e
 	if err == nil && userItem != nil {
 		isUserFavorite = userItem.IsFavorite
 	}
-	return &Item{
-		ID:          item.ID,
-		Title:       item.Title,
-		Description: item.Description,
-		Price:       item.Price,
-		Owner: ItemOwner{
-			ID:     owner.ID,
-			Name:   owner.Username,
-			Avatar: ownerAvatar,
+
+	return &GetItemResponse{
+		Item: Item{
+			ID:          item.ID,
+			Title:       item.Title,
+			Description: item.Description,
+			Price:       item.Price,
+			Owner: ItemOwner{
+				ID:     owner.ID,
+				Name:   owner.Username,
+				Avatar: ownerAvatar,
+			},
+			FavoriteCount:  item.FavoriteCount,
+			MessageCount:   item.MessageCount,
+			SeenCount:      item.SeenCount,
+			ItemStatus:     ItemStatus(item.ItemStatus),
+			CreatedAt:      item.CreatedAt,
+			Thumbnail:      thumbnail,
+			Images:         images,
+			IsUserFavorite: isUserFavorite,
+			IsHidden:       item.IsHidden,
+			Negotiable:     item.Negotiable,
 		},
-		FavoriteCount:  item.FavoriteCount,
-		MessageCount:   item.MessageCount,
-		SeenCount:      item.SeenCount,
-		ItemStatus:     ItemStatus(item.ItemStatus),
-		CreatedAt:      item.CreatedAt,
-		Thumbnail:      thumbnail,
-		Images:         images,
-		IsUserFavorite: isUserFavorite,
-		IsHidden:       item.IsHidden,
-		Negotiable:     item.Negotiable,
 	}, nil
 }
 
@@ -336,4 +321,117 @@ func (m *itemManager) UpdateItem(ctx context.Context, req UpdateItemRequest) (*U
 		return nil, err
 	}
 	return &UpdateItemResponse{}, nil
+}
+
+func (m *itemManager) IncrementConversationCount(ctx context.Context, req IncrementConversationCountRequest) error {
+	return m.itemRepository.IncrementMessageCount(ctx, req.ItemID)
+}
+
+func (m *itemManager) GetAllKarats(ctx context.Context) ([]Karat, error) {
+	karats, err := m.karatRepository.GetAllKarats(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var resp []Karat = make([]Karat, len(karats))
+	for i, karat := range karats {
+		var locales map[string]KaratLocale = make(map[string]KaratLocale, len(karat.Locales))
+		for locale, karatDescription := range karat.Locales {
+			locales[locale] = KaratLocale{
+				Name:        karatDescription.Name,
+				Description: karatDescription.Description,
+			}
+		}
+		resp[i] = Karat{
+			ID:      karat.ID,
+			Name:    karat.Name,
+			Locales: locales,
+		}
+	}
+	return resp, nil
+}
+
+func (m *itemManager) GetAllCategories(ctx context.Context) ([]Category, error) {
+	categories, err := m.categoryRepository.GetAllCategories(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var resp []Category = make([]Category, len(categories))
+	for i, category := range categories {
+		var locales map[string]CategoryLocale = make(map[string]CategoryLocale, len(category.Locales))
+		for locale, categoryDescription := range category.Locales {
+			locales[locale] = CategoryLocale{
+				Name:        categoryDescription.Name,
+				Description: categoryDescription.Description,
+			}
+		}
+		resp[i] = Category{
+			ID:      category.ID,
+			Name:    category.Name,
+			Locales: locales,
+		}
+	}
+	return resp, nil
+}
+
+func (m *itemManager) repoItemIntoItemBlocks(ctx context.Context, repoItems []repository.Item) []ItemBlock {
+	var userOtherItems []ItemBlock = make([]ItemBlock, len(repoItems))
+	for i, item := range repoItems {
+		image, err := m.itemImageRepository.GetItemThumbnail(ctx, item.ID)
+		if err != nil {
+			continue
+		}
+		thumbnail := m.blobStorage.GetFrontDoorUrl(image.Key)
+
+		userOtherItems[i] = ItemBlock{
+			ID:            item.ID,
+			Title:         item.Title,
+			Description:   item.Description,
+			Price:         item.Price,
+			OwnerID:       item.OwnerID,
+			FavoriteCount: item.FavoriteCount,
+			MessageCount:  item.MessageCount,
+			SeenCount:     item.SeenCount,
+			ItemStatus:    ItemStatus(item.ItemStatus),
+			CreatedAt:     item.CreatedAt,
+			Thumbnail:     thumbnail,
+			IsHidden:      item.IsHidden,
+		}
+	}
+	return userOtherItems
+}
+
+func (m *itemManager) GetSimilarItems(ctx context.Context, req GetSimilarItemsRequest) (*GetSimilarItemsResponse, error) {
+	item, err := m.itemRepository.GetItem(ctx, req.ItemID)
+	if err != nil {
+		return nil, err
+	}
+
+	var suggestedItems []ItemBlock = make([]ItemBlock, 0)
+	var otherUserItems []ItemBlock = make([]ItemBlock, 0)
+	// get suggested items if user is not owner of item
+	if item.OwnerID != req.UserID {
+		totalItemsCount := 20
+		userOtherItemsCount := 2
+
+		repoUserOtherItems, err := m.itemRepository.GetLimitedUserItems(ctx, item.OwnerID, userOtherItemsCount)
+		if err != nil {
+			return nil, err
+		}
+		otherUserItems = m.repoItemIntoItemBlocks(ctx, repoUserOtherItems)
+
+		suggestedItemsCount := totalItemsCount - len(repoUserOtherItems)
+
+		repoSuggestedItems, err := m.itemRepository.GetLimitedItemsByCategoryOrKarat(ctx, item.OwnerID, item.CategoryID, item.KaratID, suggestedItemsCount)
+		if err != nil {
+			return nil, err
+		}
+		suggestedItems = m.repoItemIntoItemBlocks(ctx, repoSuggestedItems)
+	}
+	fmt.Printf("total length of suggested items: %d\n", len(suggestedItems))
+	fmt.Printf("total length of other user items: %d\n", len(otherUserItems))
+	return &GetSimilarItemsResponse{
+		SuggestedItems: suggestedItems,
+		OtherUserItems: otherUserItems,
+	}, nil
 }

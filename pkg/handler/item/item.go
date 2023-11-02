@@ -38,8 +38,9 @@ func (c *HttpHandler) Init(ctx context.Context, router *gin.Engine) {
 			"/:id/favorite": c.middleware.HandlerWithAuth(c.FavoriteItem),
 		},
 		"PUT": {
-			"/image/upload": c.middleware.HandlerWithAuth(c.UploadItemImages),
-			"/:id":          c.middleware.HandlerWithAuth(c.UpdateItem),
+			"/image/upload":              c.middleware.HandlerWithAuth(c.UploadItemImages),
+			"/:id":                       c.middleware.HandlerWithAuth(c.UpdateItem),
+			"/:id/incrementConversation": c.middleware.HandlerWithAuth(c.IncrementConversationCount),
 		},
 		"GET": {
 			"/all/:geofenceId": c.middleware.HandlerWithAuth(c.GetItems),
@@ -47,6 +48,9 @@ func (c *HttpHandler) Init(ctx context.Context, router *gin.Engine) {
 			"/favorite":        c.middleware.HandlerWithAuth(c.GetFavoriteItems),
 			"/purchase":        c.middleware.HandlerWithAuth(c.GetPurchasedItems),
 			"/user":            c.middleware.HandlerWithAuth(c.GetUserItems),
+			"/karats":          c.GetAllKarats,
+			"/categories":      c.GetAllCategories,
+			"/:id/similar":     c.GetSimilarItems,
 		},
 	}
 	for method, route := range routes {

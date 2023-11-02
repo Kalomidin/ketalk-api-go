@@ -12,4 +12,8 @@ type ItemHandler interface {
 	GetUserItems(ctx *gin.Context) (*GetUserItemsResponse, error)
 	GetPurchasedItems(ctx *gin.Context) (*GetPurchasedItemsResponse, error)
 	UpdateItem(ctx *gin.Context, req UpdateItemRequest) (*UpdateItemResponse, error)
+	IncrementConversationCount(ctx *gin.Context) (interface{}, error)
+	GetAllKarats(ctx *gin.Context) (*GetAllKaratsResponse, error)
+	GetAllCategories(ctx *gin.Context) (*GetAllCategoriesResponse, error)
+	GetSimilarItems(ctx *gin.Context) (*GetSimilarItemsResponse, error)
 }

@@ -17,9 +17,9 @@ type AddItemRequest struct {
 	Weight      float32
 	OwnerID     uuid.UUID
 	Negotiable  bool
-	KaratID     uint32
-	CategoryID  uint32
-	GeofenceID  uint32
+	KaratID     uuid.UUID
+	CategoryID  uuid.UUID
+	GeofenceID  string
 	Images      []string
 	Thumbnail   string
 }
@@ -77,7 +77,7 @@ type ItemOwner struct {
 }
 
 type GetItemsRequest struct {
-	GeofenceID uint32
+	GeofenceID string
 	UserID     uuid.UUID
 }
 
@@ -128,16 +128,61 @@ type UpdateItemRequest struct {
 type UpdateItemResponse struct {
 }
 
+type IncrementConversationCountRequest struct {
+	ItemID uuid.UUID
+	UserID uuid.UUID
+}
+
+type Karat struct {
+	ID      uuid.UUID
+	Name    string
+	Locales map[string]KaratLocale
+}
+
+type KaratLocale struct {
+	Description string
+	Name        string
+}
+
+type Category struct {
+	ID      uuid.UUID
+	Name    string
+	Locales map[string]CategoryLocale
+}
+
+type CategoryLocale struct {
+	Description string
+	Name        string
+}
+
+type GetItemResponse struct {
+	Item
+}
+
+type GetSimilarItemsRequest struct {
+	ItemID uuid.UUID
+	UserID uuid.UUID
+}
+
+type GetSimilarItemsResponse struct {
+	SuggestedItems []ItemBlock
+	OtherUserItems []ItemBlock
+}
+
 type ItemManager interface {
 	AddItem(ctx context.Context, item AddItemRequest) (*AddItemResponse, error)
 	UploadItemImages(ctx context.Context, req UploadItemImagesRequest) (*UploadItemImagesResponse, error)
 	GetItems(ctx context.Context, req GetItemsRequest) ([]ItemBlock, error)
-	GetItem(ctx context.Context, req GetItemRequest) (*Item, error)
+	GetItem(ctx context.Context, req GetItemRequest) (*GetItemResponse, error)
 	GetFavoriteItems(ctx context.Context, req GetFavoriteItemsRequest) ([]ItemBlock, error)
 	GetUserItems(ctx context.Context, req GetUserItemsRequest) ([]ItemBlock, error)
 	FavoriteItem(ctx context.Context, req FavoriteItemRequest) (*FavoriteItemResponse, error)
+	IncrementConversationCount(ctx context.Context, req IncrementConversationCountRequest) error
 	GetPurchasedItems(ctx context.Context, req GetPurchasedItemsRequest) ([]ItemBlock, error)
 	UpdateItem(ctx context.Context, req UpdateItemRequest) (*UpdateItemResponse, error)
+	GetAllKarats(ctx context.Context) ([]Karat, error)
+	GetAllCategories(ctx context.Context) ([]Category, error)
+	GetSimilarItems(ctx context.Context, req GetSimilarItemsRequest) (*GetSimilarItemsResponse, error)
 }
 
 type ItemStatus string

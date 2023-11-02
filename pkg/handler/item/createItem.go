@@ -10,17 +10,17 @@ import (
 )
 
 type CreateItemRequest struct {
-	Title       string   `json:"title"`
-	Description string   `json:"description"`
-	Negotiable  bool     `json:"negotiable"`
-	Price       uint32   `json:"price"`
-	Size        float32  `json:"size"`
-	Weight      float32  `json:"weight"`
-	KaratID     uint32   `json:"karatId"`
-	CategoryID  uint32   `json:"categoryId"`
-	GeofenceID  uint32   `json:"geofenceId"`
-	Images      []string `json:"images"`
-	Thumbnail   string   `json:"thumbnail"`
+	Title       string    `json:"title"`
+	Description string    `json:"description"`
+	Negotiable  bool      `json:"negotiable"`
+	Price       uint32    `json:"price"`
+	Size        float32   `json:"size"`
+	Weight      float32   `json:"weight"`
+	KaratID     uuid.UUID `json:"karatId"`
+	CategoryID  uuid.UUID `json:"categoryId"`
+	GeofenceID  string    `json:"geofenceId"`
+	Images      []string  `json:"images"`
+	Thumbnail   string    `json:"thumbnail"`
 }
 
 type SignedUrlWithImageID struct {

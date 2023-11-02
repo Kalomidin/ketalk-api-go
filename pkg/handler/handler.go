@@ -68,6 +68,9 @@ func InitHandlers(
 	memberRepo := conversation_repo.NewMemberRepository(db)
 	messageRepo := conversation_repo.NewMessageRepository(db)
 
+	karatRepo := item_repo.NewKaratRepository(db)
+	categoryRepo := item_repo.NewCategoryRepository(db)
+
 	// run migrations
 	if err := runMigrations(db, &cfg.DB,
 		userRepo,
@@ -78,6 +81,8 @@ func InitHandlers(
 		conversationRepo,
 		memberRepo,
 		messageRepo,
+		karatRepo,
+		categoryRepo,
 	); err != nil {
 		return err
 	}
@@ -94,7 +99,7 @@ func InitHandlers(
 	userManager := user_manager.NewUserManager(userRepo, blobStorage)
 	userHandler := user_handler.NewHandler(userManager)
 
-	itemManager := item_manager.NewItemManager(itemRepo, itemImageRepo, userItemRepo, userPort, blobStorage)
+	itemManager := item_manager.NewItemManager(itemRepo, itemImageRepo, userItemRepo, karatRepo, categoryRepo, userPort, blobStorage)
 	itemHandler := item_handler.NewHandler(itemManager)
 
 	authHttpHandler := auth_handler.NewHttpHandler(ctx, authHandler, middleware)
@@ -127,6 +132,8 @@ func runMigrations(db *gorm.DB,
 	conversationRepo conversation_repo.ConversationRepository,
 	memberRepo conversation_repo.MemberRepository,
 	messageRepo conversation_repo.MessageRepository,
+	karatRepo item_repo.KaratRepository,
+	categoryRepo item_repo.CategoryRepository,
 ) error {
 	if resp := db.Exec(fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s", dbConfig.GetSchema())); resp.Error != nil {
 		return resp.Error
@@ -163,6 +170,16 @@ func runMigrations(db *gorm.DB,
 		return err
 	}
 	err = messageRepo.Migrate()
+	if err != nil {
+		return err
+	}
+
+	err = karatRepo.Migrate()
+	if err != nil {
+		return err
+	}
+
+	err = categoryRepo.Migrate()
 	if err != nil {
 		return err
 	}

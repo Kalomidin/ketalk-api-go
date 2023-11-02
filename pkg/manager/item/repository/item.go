@@ -52,7 +52,7 @@ func (r *itemRepository) Update(ctx context.Context, item *Item) error {
 	return nil
 }
 
-func (r *itemRepository) GetItems(ctx context.Context, GeofenceID uint32, userID uuid.UUID) ([]Item, error) {
+func (r *itemRepository) GetItems(ctx context.Context, GeofenceID string, userID uuid.UUID) ([]Item, error) {
 	var items []Item = make([]Item, 0)
 	resp := r.Where("geofence_id = ? AND owner_id != ?", GeofenceID, userID).Find(&items)
 	if resp.Error != nil {
@@ -73,6 +73,24 @@ func (r *itemRepository) GetItem(ctx context.Context, itemID uuid.UUID) (*Item, 
 func (r *itemRepository) GetUserItems(ctx context.Context, userID uuid.UUID) ([]Item, error) {
 	var items []Item = make([]Item, 0)
 	resp := r.Where("owner_id = ?", userID).Find(&items)
+	if resp.Error != nil {
+		return nil, resp.Error
+	}
+	return items, nil
+}
+
+func (r *itemRepository) GetLimitedUserItems(ctx context.Context, userID uuid.UUID, limit int) ([]Item, error) {
+	var items []Item = make([]Item, 0)
+	resp := r.Where("owner_id = ?", userID).Limit(limit).Find(&items)
+	if resp.Error != nil {
+		return nil, resp.Error
+	}
+	return items, nil
+}
+
+func (r *itemRepository) GetLimitedItemsByCategoryOrKarat(ctx context.Context, userIDToExlude uuid.UUID, categoryID uuid.UUID, karatID uuid.UUID, limit int) ([]Item, error) {
+	var items []Item = make([]Item, 0)
+	resp := r.Where("(category_id = ? OR karat_id = ?) AND owner_id != ?", categoryID, karatID, userIDToExlude).Limit(limit).Find(&items)
 	if resp.Error != nil {
 		return nil, resp.Error
 	}

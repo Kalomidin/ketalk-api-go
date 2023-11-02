@@ -2,6 +2,8 @@ package repository
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"ketalk-api/common"
 
 	"github.com/google/uuid"
@@ -21,22 +23,24 @@ type Item struct {
 	SeenCount     uint32
 	Size          float32
 	Weight        float32
-	KaratID       uint32
-	CategoryID    uint32
-	GeofenceID    uint32
+	KaratID       uuid.UUID
+	CategoryID    uuid.UUID
+	GeofenceID    string
 	common.CreatedUpdatedDeleted
 }
 
 type ItemRepository interface {
 	AddItem(ctx context.Context, item *Item) error
 	Update(ctx context.Context, item *Item) error
-	GetItems(ctx context.Context, GeofenceID uint32, userID uuid.UUID) ([]Item, error)
+	GetItems(ctx context.Context, GeofenceID string, userID uuid.UUID) ([]Item, error)
 	GetUserItems(ctx context.Context, userID uuid.UUID) ([]Item, error)
 	GetItem(ctx context.Context, itemId uuid.UUID) (*Item, error)
 	IncrementFavoriteCount(ctx context.Context, itemId uuid.UUID) error
 	DecrementFavoriteCount(ctx context.Context, itemId uuid.UUID) error
 	IncrementMessageCount(ctx context.Context, itemId uuid.UUID) error
 	DecrementMessageCount(ctx context.Context, itemId uuid.UUID) error
+	GetLimitedUserItems(ctx context.Context, userID uuid.UUID, limit int) ([]Item, error)
+	GetLimitedItemsByCategoryOrKarat(ctx context.Context, userIDToExlude uuid.UUID, categoryID uuid.UUID, karatID uuid.UUID, limit int) ([]Item, error)
 	Migrate() error
 }
 
@@ -72,5 +76,69 @@ type UserItemRepository interface {
 	GetUserItem(ctx context.Context, userID uuid.UUID, itemID uuid.UUID) (*UserItem, error)
 	GetUserFavoriteItems(ctx context.Context, userID uuid.UUID) ([]Item, error)
 	GetPurchasedItems(ctx context.Context, userID uuid.UUID) ([]Item, error)
+	Migrate() error
+}
+
+type Karat struct {
+	ID      uuid.UUID `gorm:"primaryKey;default:gen_random_uuid()"`
+	Name    string
+	Locales KaratLocales `gorm:"type:json"`
+	common.CreatedDeleted
+}
+
+type KaratLocales map[string]KaratLocale
+
+type KaratLocale struct {
+	Description string
+	Name        string
+}
+
+func (kl *KaratLocales) Scan(value interface{}) error {
+	bytes, ok := value.([]byte)
+	if !ok {
+		return fmt.Errorf("failed to unmarshal JSONB value: %v", value)
+	}
+
+	err := json.Unmarshal(bytes, kl)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+type KaratRepository interface {
+	GetAllKarats(ctx context.Context) ([]Karat, error)
+	Migrate() error
+}
+
+type Category struct {
+	ID      uuid.UUID `gorm:"primaryKey;default:gen_random_uuid()"`
+	Name    string
+	Locales CategoryLocales `gorm:"type:json"`
+	common.CreatedDeleted
+}
+
+type CategoryLocales map[string]CategoryLocale
+
+type CategoryLocale struct {
+	Description string
+	Name        string
+}
+
+func (kl *CategoryLocales) Scan(value interface{}) error {
+	bytes, ok := value.([]byte)
+	if !ok {
+		return fmt.Errorf("Failed to unmarshal JSONB value: %v", value)
+	}
+
+	err := json.Unmarshal(bytes, kl)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+type CategoryRepository interface {
+	GetAllCategories(ctx context.Context) ([]Category, error)
 	Migrate() error
 }
