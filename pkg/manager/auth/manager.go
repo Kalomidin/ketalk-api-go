@@ -23,14 +23,16 @@ type Token struct {
 type authManager struct {
 	authRepository repository.Repository
 	userPort       port.UserPort
+	geofencePort   port.GeofencePort
 	provider       provider.ProviderClient
 	jwtConfig      jwt.Config
 }
 
-func NewAuthManager(authRepository repository.Repository, userPort port.UserPort, provider provider.ProviderClient, jwtConfig jwt.Config) AuthManager {
+func NewAuthManager(authRepository repository.Repository, userPort port.UserPort, geofencePort port.GeofencePort, provider provider.ProviderClient, jwtConfig jwt.Config) AuthManager {
 	return &authManager{
 		authRepository,
 		userPort,
+		geofencePort,
 		provider,
 		jwtConfig,
 	}
@@ -63,6 +65,13 @@ func (m *authManager) SignupOrLogin(ctx context.Context, req SignupOrLoginReques
 	if req.SignUpDetails != nil {
 		createUserReq.Password = &req.SignUpDetails.Password
 	}
+
+	geofence, err := m.geofencePort.GetGeofenceByLocation(ctx, req.Location)
+	if err != nil {
+		return nil, err
+	}
+	createUserReq.GeofenceID = geofence.ID
+
 	user, err := m.userPort.CreateOrGetUser(ctx, createUserReq)
 	if err != nil {
 		return nil, err

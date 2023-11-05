@@ -1,8 +1,9 @@
 version: '3.9'
+
 services:
   database:
     container_name: database
-    image: postgres:15.2-alpine
+    image: postgis/postgis:15-3.4-alpine  # Using PostGIS with Postgres 15 on Alpine
     restart: always
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -16,6 +17,6 @@ services:
       - "6379:6379"
     volumes:
       - redis-data:/data
-      
+   
 volumes:
   redis-data:

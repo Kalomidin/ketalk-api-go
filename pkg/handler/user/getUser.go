@@ -13,6 +13,12 @@ type GetUserResponse struct {
 	Username string    `json:"userName"`
 	Email    string    `json:"email"`
 	Image    *string   `json:"avatar"`
+	Geofence Geofence  `json:"geofence"`
+}
+
+type Geofence struct {
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
 }
 
 // @BasePath /api/v1
@@ -45,5 +51,9 @@ func (h *handler) GetUser(ctx *gin.Context) (*GetUserResponse, error) {
 		Username: user.Username,
 		Email:    user.Email,
 		Image:    user.Image,
+		Geofence: Geofence{
+			ID:   user.Geofence.ID,
+			Name: user.Geofence.Name,
+		},
 	}, nil
 }

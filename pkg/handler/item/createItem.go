@@ -23,16 +23,22 @@ type CreateItemRequest struct {
 	Thumbnail   string    `json:"thumbnail"`
 }
 
-type SignedUrlWithImageID struct {
+type ItemImage struct {
+	ID        uuid.UUID `json:"id"`
+	SignedUrl string    `json:"url"`
+	Name      string    `json:"name"`
+}
+
+type ImageUploadUrlWithName struct {
 	ID        uuid.UUID `json:"id"`
 	SignedUrl string    `json:"url"`
 	Name      string    `json:"name"`
 }
 
 type CreateItemResponse struct {
-	ID            uuid.UUID              `json:"id"`
-	CreatedAt     int64                  `json:"createdAt"`
-	PresignedUrls []SignedUrlWithImageID `json:"itemImages"`
+	ID            uuid.UUID                `json:"id"`
+	CreatedAt     int64                    `json:"createdAt"`
+	PresignedUrls []ImageUploadUrlWithName `json:"itemImages"`
 }
 
 func (h *HttpHandler) CreateItem(ctx *gin.Context, r *http.Request) (interface{}, error) {
@@ -68,9 +74,9 @@ func (h *handler) CreateItem(ctx *gin.Context, r CreateItemRequest) (*CreateItem
 	if err != nil {
 		return nil, err
 	}
-	var presignedUrls []SignedUrlWithImageID = make([]SignedUrlWithImageID, len(resp.PresignedUrls))
+	var presignedUrls []ImageUploadUrlWithName = make([]ImageUploadUrlWithName, len(resp.PresignedUrls))
 	for i, url := range resp.PresignedUrls {
-		presignedUrls[i] = SignedUrlWithImageID{
+		presignedUrls[i] = ImageUploadUrlWithName{
 			ID:        url.ID,
 			SignedUrl: url.SignedUrl,
 			Name:      url.Name,

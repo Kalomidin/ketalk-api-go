@@ -3,6 +3,7 @@ package user_manager
 import (
 	"context"
 	"fmt"
+	"ketalk-api/pkg/manager/port"
 	"ketalk-api/pkg/manager/user/repository"
 	"ketalk-api/storage"
 
@@ -10,13 +11,17 @@ import (
 )
 
 type userManager struct {
-	repository       repository.Repository
-	azureBlobStorage storage.AzureBlobStorage
+	repository             repository.Repository
+	userGeofenceRepository repository.UserGeofenceRepository
+	geofencePort           port.GeofencePort
+	azureBlobStorage       storage.AzureBlobStorage
 }
 
-func NewUserManager(repository repository.Repository, azureBlobStorage storage.AzureBlobStorage) UserManager {
+func NewUserManager(repository repository.Repository, userGeofenceRepository repository.UserGeofenceRepository, geofencePort port.GeofencePort, azureBlobStorage storage.AzureBlobStorage) UserManager {
 	return &userManager{
 		repository,
+		userGeofenceRepository,
+		geofencePort,
 		azureBlobStorage,
 	}
 }
@@ -31,11 +36,25 @@ func (m *userManager) GetUser(ctx context.Context, userID uuid.UUID) (*User, err
 		imageUrl := m.azureBlobStorage.GetFrontDoorUrl(*user.Image)
 		url = &imageUrl
 	}
+	userGeofence, err := m.userGeofenceRepository.GetUserGeofence(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Printf("userGeofence: %+v\n", userGeofence)
+	geofence, err := m.geofencePort.GetGeofenceById(ctx, userGeofence.GeofenceID)
+	if err != nil {
+		return nil, err
+	}
+
 	return &User{
 		ID:       user.ID,
 		Username: user.Username,
 		Email:    user.Email,
 		Image:    url,
+		Geofence: Geofence{
+			ID:   geofence.ID,
+			Name: geofence.Name,
+		},
 	}, nil
 }
 
@@ -56,11 +75,24 @@ func (m *userManager) Update(ctx context.Context, req UpdateUserRequest) (*User,
 	if err := m.repository.UpdateUser(ctx, user); err != nil {
 		return nil, err
 	}
+	userGeofence, err := m.userGeofenceRepository.GetUserGeofence(ctx, req.UserID)
+	if err != nil {
+		return nil, err
+	}
+	geofence, err := m.geofencePort.GetGeofenceById(ctx, userGeofence.GeofenceID)
+	if err != nil {
+		return nil, err
+	}
+
 	return &User{
 		ID:       user.ID,
 		Username: user.Username,
 		Email:    user.Email,
 		Image:    user.Image,
+		Geofence: Geofence{
+			ID:   geofence.ID,
+			Name: geofence.Name,
+		},
 	}, nil
 }
 

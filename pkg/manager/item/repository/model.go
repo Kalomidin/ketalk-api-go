@@ -67,6 +67,8 @@ type ItemImageRepository interface {
 	AddItemImages(ctx context.Context, itemID uuid.UUID, images []ItemImage) error
 	GetItemThumbnail(ctx context.Context, itemID uuid.UUID) (ItemImage, error)
 	UpdateItemImagesToUploaded(ctx context.Context, itemID uuid.UUID, imageIds []uuid.UUID) error
+	UpdateItemImage(ctx context.Context, itemID uuid.UUID, imageId uuid.UUID, isCover bool) error
+	DeleteItemImages(ctx context.Context, itemID uuid.UUID, imageIds []uuid.UUID) error
 	Migrate() error
 }
 

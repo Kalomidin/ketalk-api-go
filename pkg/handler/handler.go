@@ -14,6 +14,9 @@ import (
 	conversation_manager "ketalk-api/pkg/manager/conversation"
 	conn_redis "ketalk-api/pkg/manager/conversation/redis"
 	con_repo "ketalk-api/pkg/manager/conversation/repository"
+	georegion_manager "ketalk-api/pkg/manager/georegion"
+	geofence_repo "ketalk-api/pkg/manager/georegion/repository"
+
 	conversation_repo "ketalk-api/pkg/manager/conversation/repository"
 	"ketalk-api/pkg/manager/conversation/ws"
 	item_manager "ketalk-api/pkg/manager/item"
@@ -41,7 +44,8 @@ func NewMiddleware(ctx context.Context, dbConfig postgres.ConfigPostgres) (commo
 		return nil, err
 	}
 	userRepo := user_repo.NewRepository(ctx, db)
-	userPort := user_manager.NewUserPort(userRepo)
+	userGeofenceRepo := user_repo.NewUserGeofenceRepository(db)
+	userPort := user_manager.NewUserPort(userRepo, userGeofenceRepo)
 	return middleware.NewMiddleware(userPort), nil
 }
 
@@ -71,10 +75,14 @@ func InitHandlers(
 	karatRepo := item_repo.NewKaratRepository(db)
 	categoryRepo := item_repo.NewCategoryRepository(db)
 
+	geofenceRepo := geofence_repo.NewGeofenceRepository(db)
+	userGeofenceRepo := user_repo.NewUserGeofenceRepository(db)
+
 	// run migrations
 	if err := runMigrations(db, &cfg.DB,
 		userRepo,
 		authRepo,
+		userGeofenceRepo,
 		itemRepo,
 		itemImageRepo,
 		userItemRepo,
@@ -83,24 +91,27 @@ func InitHandlers(
 		messageRepo,
 		karatRepo,
 		categoryRepo,
+		geofenceRepo,
 	); err != nil {
 		return err
 	}
 
-	userPort := user_manager.NewUserPort(userRepo)
+	userPort := user_manager.NewUserPort(userRepo, userGeofenceRepo)
 	itemPort := item_manager.NewItemPort(itemRepo, itemImageRepo)
+	geofencePort := georegion_manager.NewGeofencePort(geofenceRepo)
+
 	conversationPort := conversation_manager.NewConversationPort(conversationRepo, messageRepo, memberRepo)
 
 	googleClient := google.NewGoogleClient(cfg.Google)
 	providerClient := provider.NewProviderClient(googleClient)
 
-	authManager := auth_manager.NewAuthManager(authRepo, userPort, providerClient, cfg.Auth)
+	authManager := auth_manager.NewAuthManager(authRepo, userPort, geofencePort, providerClient, cfg.Auth)
 	authHandler := auth_handler.NewHandler(authManager)
 
-	userManager := user_manager.NewUserManager(userRepo, blobStorage)
+	userManager := user_manager.NewUserManager(userRepo, userGeofenceRepo, geofencePort, blobStorage)
 	userHandler := user_handler.NewHandler(userManager)
 
-	itemManager := item_manager.NewItemManager(itemRepo, itemImageRepo, userItemRepo, karatRepo, categoryRepo, userPort, conversationPort, blobStorage)
+	itemManager := item_manager.NewItemManager(itemRepo, itemImageRepo, userItemRepo, karatRepo, categoryRepo, userPort, conversationPort, geofencePort, blobStorage)
 	itemHandler := item_handler.NewHandler(itemManager)
 
 	authHttpHandler := auth_handler.NewHttpHandler(ctx, authHandler, middleware)
@@ -127,6 +138,7 @@ func InitHandlers(
 func runMigrations(db *gorm.DB,
 	dbConfig postgres.ConfigPostgres,
 	userRepo user_repo.Repository, authRepo auth_repo.Repository,
+	userGeofenceRepo user_repo.UserGeofenceRepository,
 	itemRepo item_repo.ItemRepository,
 	itemImageRepo item_repo.ItemImageRepository,
 	userItemRepo item_repo.UserItemRepository,
@@ -135,29 +147,36 @@ func runMigrations(db *gorm.DB,
 	messageRepo conversation_repo.MessageRepository,
 	karatRepo item_repo.KaratRepository,
 	categoryRepo item_repo.CategoryRepository,
+	geofenceRepo geofence_repo.GeofenceRepository,
 ) error {
 	if resp := db.Exec(fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s", dbConfig.GetSchema())); resp.Error != nil {
 		return resp.Error
 	}
 
-	err := userRepo.MigrateUser()
-	if err != nil {
-		return err
-	}
-	err = authRepo.Migrate()
-	if err != nil {
-		return err
-	}
-	err = itemRepo.Migrate()
-	if err != nil {
-		return err
-	}
-	err = itemImageRepo.Migrate()
-	if err != nil {
+	if err := userRepo.MigrateUser(); err != nil {
 		return err
 	}
 
-	err = userItemRepo.Migrate()
+	if err := geofenceRepo.Migrate(); err != nil {
+		return err
+	}
+
+	if err := userGeofenceRepo.Migrate(); err != nil {
+		return err
+	}
+
+	if err := authRepo.Migrate(); err != nil {
+		return err
+	}
+
+	if err := itemRepo.Migrate(); err != nil {
+		return err
+	}
+	if err := itemImageRepo.Migrate(); err != nil {
+		return err
+	}
+
+	err := userItemRepo.Migrate()
 	if err != nil {
 		return err
 	}

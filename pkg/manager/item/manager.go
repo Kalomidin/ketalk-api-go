@@ -8,6 +8,7 @@ import (
 	"ketalk-api/storage"
 	"time"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -19,10 +20,11 @@ type itemManager struct {
 	categoryRepository  repository.CategoryRepository
 	userPort            port.UserPort
 	conversationPort    port.ConversationPort
+	geofencePort        port.GeofencePort
 	blobStorage         storage.AzureBlobStorage
 }
 
-func NewItemManager(itemRepository repository.ItemRepository, itemImageRepository repository.ItemImageRepository, userItemRepository repository.UserItemRepository, karatRepository repository.KaratRepository, categoryRepository repository.CategoryRepository, userPort port.UserPort, conversationPort port.ConversationPort, azureBlobStorage storage.AzureBlobStorage) ItemManager {
+func NewItemManager(itemRepository repository.ItemRepository, itemImageRepository repository.ItemImageRepository, userItemRepository repository.UserItemRepository, karatRepository repository.KaratRepository, categoryRepository repository.CategoryRepository, userPort port.UserPort, conversationPort port.ConversationPort, geofencePort port.GeofencePort, azureBlobStorage storage.AzureBlobStorage) ItemManager {
 	return &itemManager{
 		itemRepository,
 		itemImageRepository,
@@ -31,6 +33,7 @@ func NewItemManager(itemRepository repository.ItemRepository, itemImageRepositor
 		categoryRepository,
 		userPort,
 		conversationPort,
+		geofencePort,
 		azureBlobStorage,
 	}
 }
@@ -55,7 +58,7 @@ func (m *itemManager) AddItem(ctx context.Context, item AddItemRequest) (*AddIte
 	}
 	var images []repository.ItemImage = make([]repository.ItemImage, len(item.Images))
 	for i, image := range item.Images {
-		key := fmt.Sprintf("%+v_%s", time.Now().UTC().UnixNano(), image)
+		key := fmt.Sprintf("%+v_%s", time.Now().UTC().UnixNano(), item.Images[i])
 		images[i] = repository.ItemImage{
 			Key:     key,
 			ItemID:  repoItem.ID,
@@ -66,13 +69,13 @@ func (m *itemManager) AddItem(ctx context.Context, item AddItemRequest) (*AddIte
 		return nil, err
 	}
 
-	var generatedUrls []SignedUrlWithImageID = make([]SignedUrlWithImageID, 0)
+	var generatedUrls []ImageUploadUrlWithName = make([]ImageUploadUrlWithName, 0)
 	for i, image := range images {
 		url, err := m.blobStorage.GeneratePresignedUrlToUpload(image.Key)
 		if err != nil {
 			continue
 		}
-		generatedUrls = append(generatedUrls, SignedUrlWithImageID{
+		generatedUrls = append(generatedUrls, ImageUploadUrlWithName{
 			ID:        image.ID,
 			SignedUrl: url,
 			Name:      item.Images[i],
@@ -108,20 +111,29 @@ func (m *itemManager) GetItem(ctx context.Context, req GetItemRequest) (*GetItem
 	if err != nil {
 		return nil, err
 	}
-	var images []string = make([]string, len(itemImages))
+	var images []ItemImage = make([]ItemImage, len(itemImages))
 	var thumbnail string
 	for i, image := range itemImages {
 		url := m.blobStorage.GetFrontDoorUrl(image.Key)
 		if image.IsCover {
 			thumbnail = url
 		}
-		images[i] = url
+		images[i] = ItemImage{
+			ID:        image.ID,
+			SignedUrl: url,
+			Name:      image.Key,
+		}
 	}
 
 	owner, err := m.userPort.GetUser(ctx, item.OwnerID)
 	if err != nil {
 		return nil, err
 	}
+	ownerGeofence, err := m.geofencePort.GetGeofenceById(ctx, owner.GeofenceID)
+	if err != nil {
+		return nil, err
+	}
+
 	var ownerAvatar *string
 	if owner.Image != nil {
 		url := m.blobStorage.GetFrontDoorUrl(*owner.Image)
@@ -143,6 +155,10 @@ func (m *itemManager) GetItem(ctx context.Context, req GetItemRequest) (*GetItem
 				ID:     owner.ID,
 				Name:   owner.Username,
 				Avatar: ownerAvatar,
+				Geofence: Geofence{
+					ID:   ownerGeofence.ID,
+					Name: ownerGeofence.Name,
+				},
 			},
 			FavoriteCount:  item.FavoriteCount,
 			MessageCount:   item.MessageCount,
@@ -154,6 +170,10 @@ func (m *itemManager) GetItem(ctx context.Context, req GetItemRequest) (*GetItem
 			IsUserFavorite: isUserFavorite,
 			IsHidden:       item.IsHidden,
 			Negotiable:     item.Negotiable,
+			KaratID:        item.KaratID,
+			CategoryID:     item.CategoryID,
+			Weight:         item.Weight,
+			Size:           item.Size,
 		},
 	}, nil
 }
@@ -326,13 +346,111 @@ func (m *itemManager) UpdateItem(ctx context.Context, req UpdateItemRequest) (*U
 	if req.Price != nil {
 		item.Price = *req.Price
 	}
+	if req.KaratID != nil {
+		item.KaratID = *req.KaratID
+	}
+	if req.CategoryID != nil {
+		item.CategoryID = *req.CategoryID
+	}
+	if req.Size != nil {
+		item.Size = *req.Size
+	}
+	if req.Weight != nil {
+		item.Weight = *req.Weight
+	}
+
 	if req.Negotiable != nil {
 		item.Negotiable = *req.Negotiable
 	}
+
+	var generatedUrls []ImageUploadUrlWithName = make([]ImageUploadUrlWithName, 0)
+	if len(req.Images) > 0 {
+		repoImages, err := m.itemImageRepository.GetItemImages(ctx, item.ID)
+		if err != nil {
+			return nil, err
+		}
+		type NewImage struct {
+			name    string
+			isCover bool
+		}
+		var newImages []NewImage = make([]NewImage, 0)
+		var updatedImage *repository.ItemImage
+		for _, image := range req.Images {
+			if image.ID == nil {
+				newImages = append(newImages, NewImage{
+					name:    *image.Name,
+					isCover: image.IsCover,
+				})
+			} else {
+				for _, repoImage := range repoImages {
+					if repoImage.ID == *image.ID && repoImage.IsCover != image.IsCover {
+						updatedImage = &repoImage
+						updatedImage.IsCover = image.IsCover
+					}
+				}
+			}
+		}
+		var newImagesRepo []repository.ItemImage = make([]repository.ItemImage, len(newImages))
+		for i, image := range newImages {
+			key := fmt.Sprintf("%+v_%s", time.Now().UTC().UnixNano(), image.name)
+			newImagesRepo[i] = repository.ItemImage{
+				Key:     key,
+				ItemID:  item.ID,
+				IsCover: image.isCover,
+			}
+		}
+		if err := m.itemImageRepository.AddItemImages(ctx, item.ID, newImagesRepo); err != nil {
+			return nil, err
+		}
+		// generate presigned urls
+		for i, image := range newImagesRepo {
+			uploadUrl, err := m.blobStorage.GeneratePresignedUrlToUpload(image.Key)
+			if err != nil {
+				continue
+			}
+
+			generatedUrls = append(generatedUrls, ImageUploadUrlWithName{
+				ID:        image.ID,
+				SignedUrl: uploadUrl,
+				Name:      newImages[i].name,
+			})
+		}
+
+		if updatedImage != nil {
+			// TODO: update updated image
+			if err := m.itemImageRepository.UpdateItemImage(ctx, item.ID, updatedImage.ID, updatedImage.IsCover); err != nil {
+				return nil, err
+			}
+		}
+
+		// Remove images
+		var removedImages []uuid.UUID = make([]uuid.UUID, 0)
+		for _, repoImage := range repoImages {
+			contains := false
+			for _, image := range req.Images {
+				if image.ID != nil && repoImage.ID == *image.ID {
+					contains = true
+					break
+				}
+			}
+			if !contains {
+				removedImages = append(removedImages, repoImage.ID)
+			}
+		}
+
+		if len(removedImages) > 0 {
+			if err := m.itemImageRepository.DeleteItemImages(ctx, item.ID, removedImages); err != nil {
+				return nil, err
+			}
+		}
+	}
+
 	if err := m.itemRepository.Update(ctx, item); err != nil {
 		return nil, err
 	}
-	return &UpdateItemResponse{}, nil
+	return &UpdateItemResponse{
+		NewImagesPresignedUrls: generatedUrls,
+	}, nil
 }
 
 func (m *itemManager) IncrementConversationCount(ctx context.Context, req IncrementConversationCountRequest) error {

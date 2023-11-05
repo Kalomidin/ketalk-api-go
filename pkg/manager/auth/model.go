@@ -2,6 +2,7 @@ package auth_manager
 
 import (
 	"context"
+	"ketalk-api/common"
 
 	"github.com/google/uuid"
 )
@@ -28,6 +29,7 @@ type SignupOrLoginRequest struct {
 	DeviceOS      string
 
 	SignUpDetails *SignUpDetails
+	Location      common.Location
 }
 
 type SignupOrLoginResponse struct {

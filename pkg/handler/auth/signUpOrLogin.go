@@ -1,6 +1,7 @@
 package auth_handler
 
 import (
+	"ketalk-api/common"
 	auth_manager "ketalk-api/pkg/manager/auth"
 	"net/http"
 
@@ -30,7 +31,8 @@ type SignupOrLoginRequest struct {
 	DeviceOS      string         `json:"deviceOs"`
 
 	// TODO: will be removed once SSO integrated
-	SignUpDetails *SignUpDetails `json:"signUpDetails"`
+	SignUpDetails *SignUpDetails  `json:"signUpDetails"`
+	Location      common.Location `json:"location"`
 }
 
 type SignupOrLoginResponse struct {
@@ -42,17 +44,6 @@ type SignupOrLoginResponse struct {
 	RefreshToken string    `json:"refreshToken"`
 }
 
-// @BasePath /api/v1
-
-// Signup Or Login
-// @Summary Signup Or Login
-// @Schemes
-// @Description signup or login
-// @Accept json
-// @Produce json
-// @Param signupOrLogin body SignupOrLoginRequest true "signup or login"
-// @Success 200 {object} SignupOrLoginResponse
-// @Router /auth/signup-or-login [post]
 func (h *HttpHandler) SignupOrLogin(ctx *gin.Context, r *http.Request) (interface{}, error) {
 	var req SignupOrLoginRequest
 	if err := ctx.BindJSON(&req); err != nil {
@@ -69,6 +60,7 @@ func (h *handler) SignupOrLogin(ctx *gin.Context, req SignupOrLoginRequest) (*Si
 	manReq := auth_manager.SignupOrLoginRequest{
 		DeviceID: req.DeviceID,
 		DeviceOS: req.DeviceOS,
+		Location: req.Location,
 	}
 	if req.ProviderToken != nil {
 		manReq.ProviderToken = &auth_manager.ProviderToken{}

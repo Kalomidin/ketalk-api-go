@@ -27,14 +27,15 @@ type ConfigPostgres interface {
 }
 
 func InitDB(ctx context.Context, cfg ConfigPostgres) (*gorm.DB, error) {
-	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s  dbname=%s search_path=%s sslmode=%s",
-		cfg.GetHost(), cfg.GetPort(), cfg.GetUserName(), cfg.GetPassword(), cfg.GetDatabase(), cfg.GetSchema(), cfg.GetSSLMode())
+	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s  dbname=%s sslmode=%s",
+		cfg.GetHost(), cfg.GetPort(), cfg.GetUserName(), cfg.GetPassword(), cfg.GetDatabase(), cfg.GetSSLMode())
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
 		NamingStrategy: schema.NamingStrategy{
 			TablePrefix:   fmt.Sprintf("%s.", cfg.GetSchema()),
 			SingularTable: true,
-		}})
+		},
+	})
 	if err != nil {
 		return nil, err
 	}

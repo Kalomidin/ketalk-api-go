@@ -58,6 +58,28 @@ func (r *itemImageRepository) UpdateItemImagesToUploaded(ctx context.Context, it
 	return nil
 }
 
+func (r *itemImageRepository) UpdateItemImage(ctx context.Context, itemID uuid.UUID, imageID uuid.UUID, isCover bool) error {
+	res := r.Model(&ItemImage{}).Where("item_id = ? AND id = ?", itemID, imageID).Update("is_cover", isCover)
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected != 1 {
+		return fmt.Errorf("unexpected number of rows affected")
+	}
+	return nil
+}
+
+func (r *itemImageRepository) DeleteItemImages(ctx context.Context, itemID uuid.UUID, imageIDs []uuid.UUID) error {
+	res := r.Where("item_id = ? AND id IN ?", itemID, imageIDs).Delete(&ItemImage{})
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected != int64(len(imageIDs)) {
+		return fmt.Errorf("unexpected number of rows affected")
+	}
+	return nil
+}
+
 func (r *itemImageRepository) Migrate() error {
 	return r.AutoMigrate(&ItemImage{})
 }

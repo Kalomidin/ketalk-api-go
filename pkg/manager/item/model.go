@@ -22,15 +22,22 @@ type AddItemRequest struct {
 	GeofenceID  string
 	Images      []string
 	Thumbnail   string
+	Location    common.Location
 }
 
 type AddItemResponse struct {
 	ID            uuid.UUID
 	CreatedAt     time.Time
-	PresignedUrls []SignedUrlWithImageID
+	PresignedUrls []ImageUploadUrlWithName
 }
 
-type SignedUrlWithImageID struct {
+type ImageUploadUrlWithName struct {
+	ID        uuid.UUID
+	SignedUrl string
+	Name      string
+}
+
+type ItemImage struct {
 	ID        uuid.UUID
 	SignedUrl string
 	Name      string
@@ -62,18 +69,27 @@ type Item struct {
 	SeenCount      uint32
 	ItemStatus     ItemStatus
 	Thumbnail      string
-	Images         []string
+	Images         []ItemImage
 	CreatedAt      time.Time
 	Negotiable     bool
 	IsHidden       bool
 	IsUserFavorite bool
+	KaratID        uuid.UUID
+	CategoryID     uuid.UUID
+	Weight         float32
+	Size           float32
 }
 
 type ItemOwner struct {
 	ID       uuid.UUID
 	Name     string
 	Avatar   *string
-	Location *common.Location
+	Geofence Geofence
+}
+
+type Geofence struct {
+	ID   uuid.UUID
+	Name string
 }
 
 type GetItemsRequest struct {
@@ -123,9 +139,21 @@ type UpdateItemRequest struct {
 	Description *string
 	Price       *uint32
 	Negotiable  *bool
+	Size        *float32
+	Weight      *float32
+	KaratID     *uuid.UUID
+	CategoryID  *uuid.UUID
+	Images      []UpdatedItemImage
+}
+
+type UpdatedItemImage struct {
+	ID      *uuid.UUID
+	Name    *string
+	IsCover bool
 }
 
 type UpdateItemResponse struct {
+	NewImagesPresignedUrls []ImageUploadUrlWithName
 }
 
 type IncrementConversationCountRequest struct {

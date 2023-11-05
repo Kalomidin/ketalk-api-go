@@ -11,6 +11,12 @@ type User struct {
 	Username string
 	Email    string
 	Image    *string
+	Geofence Geofence
+}
+
+type Geofence struct {
+	ID   uuid.UUID
+	Name string
 }
 
 type UpdateUserRequest struct {

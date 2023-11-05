@@ -7,18 +7,20 @@ import (
 )
 
 type CreateOrGetUserRequest struct {
-	Username string
-	Email    string
-	Image    *string
-	Password *string
+	Username   string
+	Email      string
+	Image      *string
+	Password   *string
+	GeofenceID uuid.UUID
 }
 
 type User struct {
-	ID       uuid.UUID
-	Username string
-	Email    string
-	Image    *string
-	Password *string
+	ID         uuid.UUID
+	Username   string
+	Email      string
+	Image      *string
+	Password   *string
+	GeofenceID uuid.UUID
 }
 
 type UserPort interface {
