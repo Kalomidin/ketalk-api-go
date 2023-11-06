@@ -66,7 +66,7 @@ func InitHandlers(
 	authRepo := auth_repo.NewRepository(ctx, db)
 	itemRepo := item_repo.NewItemRepository(ctx, db)
 	itemImageRepo := item_repo.NewItemImageRepository(ctx, db)
-	userItemRepo := item_repo.NewUserItemRepository(db)
+	userItemRepo := item_repo.NewUserItemRepository(db, cfg.DB)
 
 	conversationRepo := conversation_repo.NewConversationRepository(db)
 	memberRepo := conversation_repo.NewMemberRepository(db)

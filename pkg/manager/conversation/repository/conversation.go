@@ -37,7 +37,7 @@ func (r *conversationRepository) GetConversations(ctx context.Context, itemID uu
 func (r *conversationRepository) GetConversation(ctx context.Context, itemID uuid.UUID, userID uuid.UUID) (*Conversation, error) {
 	var conversation Conversation
 	resp := r.Model(&conversation).InnerJoins(
-		"INNER JOIN member ON member.convresation_id = conversation.id",
+		"INNER JOIN ketalk.member ON member.convresation_id = conversation.id",
 	).Where("conversation.item_id = ? AND member.member_id = ?", itemID, userID).First(&conversation)
 	if resp.Error != nil {
 		return nil, resp.Error

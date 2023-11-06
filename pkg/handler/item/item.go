@@ -53,6 +53,7 @@ func (c *HttpHandler) Init(ctx context.Context, router *gin.Engine) {
 			"/categories":      c.GetAllCategories,
 			"/:id/similar":     c.GetSimilarItems,
 			"/:id/buyer":       c.middleware.HandlerWithAuth(c.GetItemBuyers),
+			"/search":          c.SearchItems,
 		},
 	}
 	for method, route := range routes {

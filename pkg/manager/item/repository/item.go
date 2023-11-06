@@ -61,6 +61,25 @@ func (r *itemRepository) GetItems(ctx context.Context, GeofenceID string, userID
 	return items, nil
 }
 
+func (r *itemRepository) SearchItems(ctx context.Context, keyword string, priceRange []uint32, sizeRange []float32, karatIds []uuid.UUID, categoryIds []uuid.UUID) ([]Item, error) {
+	var items []Item = make([]Item, 0)
+	query := r.Where("price BETWEEN ? AND ? AND size BETWEEN ? AND ?", priceRange[0], priceRange[1], sizeRange[0], sizeRange[1])
+	if keyword != "" {
+		query = query.Where("title LIKE ?", fmt.Sprintf("%%%s%%", keyword))
+	}
+	if len(karatIds) > 0 {
+		query = query.Where("karat_id IN ?", karatIds)
+	}
+	if len(categoryIds) > 0 {
+		query = query.Where("category_id IN ?", categoryIds)
+	}
+	resp := query.Find(&items)
+	if resp.Error != nil {
+		return nil, resp.Error
+	}
+	return items, nil
+}
+
 func (r *itemRepository) GetItem(ctx context.Context, itemID uuid.UUID) (*Item, error) {
 	var item Item
 	resp := r.Where("id = ?", itemID).First(&item)

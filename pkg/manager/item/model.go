@@ -218,6 +218,14 @@ type CreatePurchaseResponse struct {
 	BuyerID uuid.UUID
 }
 
+type SearchItemsRequest struct {
+	Keyword     string
+	PriceRange  []uint32
+	SizeRange   []float32
+	KaratIDs    []uuid.UUID
+	CategoryIDs []uuid.UUID
+}
+
 type ItemManager interface {
 	AddItem(ctx context.Context, item AddItemRequest) (*AddItemResponse, error)
 	UploadItemImages(ctx context.Context, req UploadItemImagesRequest) (*UploadItemImagesResponse, error)
@@ -234,6 +242,7 @@ type ItemManager interface {
 	GetSimilarItems(ctx context.Context, req GetSimilarItemsRequest) (*GetSimilarItemsResponse, error)
 	GetItemBuyers(ctx context.Context, req GetItemBuyersRequest) ([]ItemBuyer, error)
 	CreatePurchase(ctx context.Context, req CreatePurchaseRequest) (*CreatePurchaseResponse, error)
+	SearchItems(ctx context.Context, req SearchItemsRequest) ([]ItemBlock, error)
 }
 
 type ItemStatus string

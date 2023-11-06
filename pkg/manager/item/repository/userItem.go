@@ -2,7 +2,9 @@ package repository
 
 import (
 	"context"
+	"fmt"
 	"ketalk-api/common"
+	"ketalk-api/pkg/config"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -10,11 +12,13 @@ import (
 
 type userItemRepository struct {
 	*gorm.DB
+	dbConfig config.Postgres
 }
 
-func NewUserItemRepository(db *gorm.DB) UserItemRepository {
+func NewUserItemRepository(db *gorm.DB, dbConfig config.Postgres) UserItemRepository {
 	return &userItemRepository{
 		db,
+		dbConfig,
 	}
 }
 
@@ -45,7 +49,7 @@ func (r *userItemRepository) Update(ctx context.Context, userItem *UserItem) err
 func (r *userItemRepository) GetUserFavoriteItems(ctx context.Context, userID uuid.UUID) ([]Item, error) {
 	var userItems []Item = make([]Item, 0)
 	resp := r.Model(&Item{}).
-		InnerJoins("INNER JOIN user_item on user_item.item_id = item.id").
+		InnerJoins(fmt.Sprintf("INNER JOIN %s.%s on user_item.item_id = item.id", r.dbConfig.GetSchema(), "user_item")).
 		Where("user_item.user_id = ? and is_favorite = ?", userID, true).
 		Find(&userItems)
 	if resp.Error != nil {
@@ -57,7 +61,7 @@ func (r *userItemRepository) GetUserFavoriteItems(ctx context.Context, userID uu
 func (r *userItemRepository) GetPurchasedItems(ctx context.Context, userID uuid.UUID) ([]Item, error) {
 	var userItems []Item = make([]Item, 0)
 	resp := r.Model(&Item{}).
-		InnerJoins("INNER JOIN user_item on user_item.item_id = item.id").
+		InnerJoins(fmt.Sprintf("INNER JOIN %s.%s on user_item.item_id = item.id", r.dbConfig.GetSchema(), "user_item")).
 		Where("user_item.user_id = ? and is_purchased = ?", userID, true).
 		Find(&userItems)
 	if resp.Error != nil {

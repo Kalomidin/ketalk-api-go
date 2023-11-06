@@ -606,6 +606,14 @@ func (m *itemManager) CreatePurchase(ctx context.Context, req CreatePurchaseRequ
 	}
 }
 
+func (m *itemManager) SearchItems(ctx context.Context, req SearchItemsRequest) ([]ItemBlock, error) {
+	items, err := m.itemRepository.SearchItems(ctx, req.Keyword, req.PriceRange, req.SizeRange, req.KaratIDs, req.CategoryIDs)
+	if err != nil {
+		return nil, err
+	}
+	return m.repoItemIntoItemBlocks(ctx, items), nil
+}
+
 func (m *itemManager) repoItemIntoItemBlocks(ctx context.Context, repoItems []repository.Item) []ItemBlock {
 	var userOtherItems []ItemBlock = make([]ItemBlock, len(repoItems))
 	for i, item := range repoItems {

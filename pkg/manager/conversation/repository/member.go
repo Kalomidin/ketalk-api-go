@@ -35,7 +35,7 @@ func (r *memberRepository) GetConversations(ctx context.Context, userID uuid.UUI
 		"conversation.id, conversation.item_id, conversation.created_at, conversation.updated_at, conversation.deleted_at, member.id, member.convresation_id, member.member_id, member.last_joined_at, member.created_at, member.updated_at, member.deleted_at",
 	).
 		InnerJoins(
-			"INNER JOIN member ON member.convresation_id = conversation.id",
+			"INNER JOIN ketalk.member ON member.convresation_id = conversation.id",
 		).Where("member.member_id = ?", userID).Find(&conversations)
 	if resp.Error != nil {
 		return nil, resp.Error
