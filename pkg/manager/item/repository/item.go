@@ -132,6 +132,16 @@ func (r *itemRepository) DecrementMessageCount(ctx context.Context, itemId uuid.
 	return r.Model(&Item{}).Where("id = ? AND message_count > 0", itemId).Update("message_count", gorm.Expr("message_count - ?", 1)).Error
 }
 
+func (r *itemRepository) DeleteItem(ctx context.Context, itemId uuid.UUID) error {
+	resp := r.Delete(&Item{
+		ID: itemId,
+	}, itemId)
+	if resp.RowsAffected == 0 {
+		return fmt.Errorf("item not found")
+	}
+	return resp.Error
+}
+
 func (r *itemRepository) Migrate() error {
 	return r.AutoMigrate(&Item{})
 }

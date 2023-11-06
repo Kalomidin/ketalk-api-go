@@ -2,22 +2,24 @@ package common
 
 import (
 	"time"
+
+	"gorm.io/gorm"
 )
 
 type CreatedUpdated struct {
-	CreatedAt time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 type CreatedDeleted struct {
-	CreatedAt time.Time  `db:"created_at" json:"created_at"`
-	DeletedAt *time.Time `db:"deleted_at" json:"deleted_at"`
+	CreatedAt time.Time
+	DeletedAt gorm.DeletedAt
 }
 
 type CreatedUpdatedDeleted struct {
-	CreatedAt time.Time  `db:"created_at" json:"created_at"`
-	UpdatedAt time.Time  `db:"updated_at" json:"updated_at"`
-	DeletedAt *time.Time `db:"deleted_at" json:"deleted_at"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt gorm.DeletedAt
 }
 
 type Location struct {

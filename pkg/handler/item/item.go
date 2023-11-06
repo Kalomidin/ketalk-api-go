@@ -55,6 +55,9 @@ func (c *HttpHandler) Init(ctx context.Context, router *gin.Engine) {
 			"/:id/buyer":       c.middleware.HandlerWithAuth(c.GetItemBuyers),
 			"/search":          c.SearchItems,
 		},
+		"DELETE": {
+			"/:id": c.middleware.HandlerWithAuth(c.DeleteItem),
+		},
 	}
 	for method, route := range routes {
 		for r, h := range route {

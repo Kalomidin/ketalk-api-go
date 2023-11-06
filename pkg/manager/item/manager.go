@@ -614,6 +614,10 @@ func (m *itemManager) SearchItems(ctx context.Context, req SearchItemsRequest) (
 	return m.repoItemIntoItemBlocks(ctx, items), nil
 }
 
+func (m *itemManager) DeleteItem(ctx context.Context, itemID uuid.UUID) error {
+	return m.itemRepository.DeleteItem(ctx, itemID)
+}
+
 func (m *itemManager) repoItemIntoItemBlocks(ctx context.Context, repoItems []repository.Item) []ItemBlock {
 	var userOtherItems []ItemBlock = make([]ItemBlock, len(repoItems))
 	for i, item := range repoItems {

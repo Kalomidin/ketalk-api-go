@@ -243,6 +243,7 @@ type ItemManager interface {
 	GetItemBuyers(ctx context.Context, req GetItemBuyersRequest) ([]ItemBuyer, error)
 	CreatePurchase(ctx context.Context, req CreatePurchaseRequest) (*CreatePurchaseResponse, error)
 	SearchItems(ctx context.Context, req SearchItemsRequest) ([]ItemBlock, error)
+	DeleteItem(ctx context.Context, itemID uuid.UUID) error
 }
 
 type ItemStatus string

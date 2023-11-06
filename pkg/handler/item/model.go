@@ -19,4 +19,5 @@ type ItemHandler interface {
 	GetItemBuyers(ctx *gin.Context) (*GetItemBuyersResponse, error)
 	CreatePurchase(ctx *gin.Context, req CreatePurchaseRequest) (*CreatePurchaseResponse, error)
 	SearchItems(ctx *gin.Context) (*SearchItemsResponse, error)
+	DeleteItem(ctx *gin.Context) (*DeleteItemResponse, error)
 }

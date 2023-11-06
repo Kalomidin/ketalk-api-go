@@ -42,6 +42,7 @@ type ItemRepository interface {
 	GetLimitedUserItems(ctx context.Context, userID uuid.UUID, limit int) ([]Item, error)
 	GetLimitedItemsByCategoryOrKarat(ctx context.Context, userIDToExlude uuid.UUID, categoryID uuid.UUID, karatID uuid.UUID, limit int) ([]Item, error)
 	SearchItems(ctx context.Context, keyword string, priceRange []uint32, sizeRange []float32, karatIds []uuid.UUID, categoryIds []uuid.UUID) ([]Item, error)
+	DeleteItem(ctx context.Context, itemId uuid.UUID) error
 	Migrate() error
 }
 
