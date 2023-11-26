@@ -19,7 +19,6 @@ type AddItemRequest struct {
 	Negotiable  bool
 	KaratID     uuid.UUID
 	CategoryID  uuid.UUID
-	GeofenceID  string
 	Images      []string
 	Thumbnail   string
 	Location    common.Location
@@ -93,8 +92,8 @@ type Geofence struct {
 }
 
 type GetItemsRequest struct {
-	GeofenceID string
-	UserID     uuid.UUID
+	Location common.Location
+	UserID   uuid.UUID
 }
 
 type UploadItemImagesRequest struct {

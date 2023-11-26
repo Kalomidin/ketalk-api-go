@@ -28,10 +28,8 @@ func (m *middleware) AuthMiddleware(cfg jwt.Config) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		req := ctx.Request
 		token := req.Header.Get("Authorization")
-		fmt.Printf("token: %s\n", token)
 		if token == "" {
 			// continue if no authorization provided
-			fmt.Println("continue without token")
 			ctx.Next()
 			return
 		}
@@ -61,7 +59,6 @@ func (m *middleware) ValidateUserAuthorization(ctx context.Context) error {
 	}
 	userId, err := uuid.Parse(tokenData.Subject)
 	if err != nil {
-		fmt.Println("token is not valid1")
 		return fmt.Errorf("invalid token")
 	}
 	_, err = m.userPort.GetUser(ctx, userId)

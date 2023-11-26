@@ -40,7 +40,15 @@ func NewAuthManager(authRepository repository.Repository, userPort port.UserPort
 
 func (m *authManager) SignupOrLogin(ctx context.Context, req SignupOrLoginRequest) (*SignupOrLoginResponse, error) {
 	// create user
-	providerToken := model.ProviderToken{}
+	providerToken := model.ProviderToken{
+		GoogleToken: &model.GoogleToken{
+			IdToken: req.ProviderToken.GoogleToken.IdToken,
+			Token: model.Token{
+				AccessToken:  req.ProviderToken.GoogleToken.AccessToken,
+				RefreshToken: req.ProviderToken.GoogleToken.RefreshToken,
+			},
+		},
+	}
 
 	userDetails, err := m.provider.VerifyIDToken(ctx, &providerToken)
 	var username string
@@ -148,4 +156,8 @@ func GenerateRandomHex(length int) (string, error) {
 		return "", err
 	}
 	return hex.EncodeToString(randBytes), nil
+}
+
+func (m *authManager) Logout(ctx context.Context, req LogoutRequest) error {
+	return m.authRepository.DeleteRefreshToken(ctx, req.RefreshToken)
 }

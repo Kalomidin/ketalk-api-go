@@ -18,7 +18,6 @@ type CreateItemRequest struct {
 	Weight      float32   `json:"weight"`
 	KaratID     uuid.UUID `json:"karatId"`
 	CategoryID  uuid.UUID `json:"categoryId"`
-	GeofenceID  string    `json:"geofenceId"`
 	Images      []string  `json:"images"`
 	Thumbnail   string    `json:"thumbnail"`
 }
@@ -55,6 +54,10 @@ func (h *handler) CreateItem(ctx *gin.Context, r CreateItemRequest) (*CreateItem
 	if err != nil {
 		return nil, err
 	}
+	location, err := common.GetLocation(ctx.Request)
+	if err != nil {
+		return nil, err
+	}
 
 	req := item_manager.AddItemRequest{
 		Title:       r.Title,
@@ -66,9 +69,9 @@ func (h *handler) CreateItem(ctx *gin.Context, r CreateItemRequest) (*CreateItem
 		OwnerID:     userID,
 		KaratID:     r.KaratID,
 		CategoryID:  r.CategoryID,
-		GeofenceID:  r.GeofenceID,
 		Images:      r.Images,
 		Thumbnail:   r.Thumbnail,
+		Location:    *location,
 	}
 	resp, err := h.manager.AddItem(ctx, req)
 	if err != nil {

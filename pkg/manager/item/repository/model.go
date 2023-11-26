@@ -25,14 +25,14 @@ type Item struct {
 	Weight        float32
 	KaratID       uuid.UUID
 	CategoryID    uuid.UUID
-	GeofenceID    string
+	GeofenceID    uuid.UUID
 	common.CreatedUpdatedDeleted
 }
 
 type ItemRepository interface {
 	AddItem(ctx context.Context, item *Item) error
 	Update(ctx context.Context, item *Item) error
-	GetItems(ctx context.Context, GeofenceID string, userID uuid.UUID) ([]Item, error)
+	GetItems(ctx context.Context, GeofenceID uuid.UUID, userID uuid.UUID) ([]Item, error)
 	GetUserItems(ctx context.Context, userID uuid.UUID) ([]Item, error)
 	GetItem(ctx context.Context, itemId uuid.UUID) (*Item, error)
 	IncrementFavoriteCount(ctx context.Context, itemId uuid.UUID) error

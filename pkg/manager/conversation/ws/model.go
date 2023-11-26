@@ -7,7 +7,7 @@ import (
 )
 
 type Config struct {
-	Port int `yaml:"port" env:"PORT" env-default:"8081"`
+	Port int `yaml:"port" env:"WS_PORT" env-default:"8081"`
 }
 
 type MessageType string

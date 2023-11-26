@@ -41,6 +41,12 @@ type SignupOrLoginResponse struct {
 	RefreshToken string
 }
 
+type LogoutRequest struct {
+	UserID       uuid.UUID
+	RefreshToken string
+}
+
 type AuthManager interface {
 	SignupOrLogin(ctx context.Context, req SignupOrLoginRequest) (*SignupOrLoginResponse, error)
+	Logout(ctx context.Context, req LogoutRequest) error
 }

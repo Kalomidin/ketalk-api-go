@@ -31,8 +31,7 @@ type SignupOrLoginRequest struct {
 	DeviceOS      string         `json:"deviceOs"`
 
 	// TODO: will be removed once SSO integrated
-	SignUpDetails *SignUpDetails  `json:"signUpDetails"`
-	Location      common.Location `json:"location"`
+	SignUpDetails *SignUpDetails `json:"signUpDetails"`
 }
 
 type SignupOrLoginResponse struct {
@@ -57,11 +56,16 @@ func (h *HttpHandler) SignupOrLogin(ctx *gin.Context, r *http.Request) (interfac
 }
 
 func (h *handler) SignupOrLogin(ctx *gin.Context, req SignupOrLoginRequest) (*SignupOrLoginResponse, error) {
+	location, err := common.GetLocation(ctx.Request)
+	if err != nil {
+		return nil, err
+	}
 	manReq := auth_manager.SignupOrLoginRequest{
 		DeviceID: req.DeviceID,
 		DeviceOS: req.DeviceOS,
-		Location: req.Location,
+		Location: *location,
 	}
+
 	if req.ProviderToken != nil {
 		manReq.ProviderToken = &auth_manager.ProviderToken{}
 		if req.ProviderToken.GoogleToken != nil {

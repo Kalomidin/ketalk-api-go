@@ -36,6 +36,9 @@ func (c *HttpHandler) Init(ctx context.Context, router *gin.Engine) {
 		"POST": {
 			"/signup-or-login": c.SignupOrLogin,
 		},
+		"DELETE": {
+			"/logout": c.middleware.HandlerWithAuth(c.Logout),
+		},
 	}
 	for method, route := range routes {
 		for r, h := range route {

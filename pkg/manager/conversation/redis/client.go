@@ -16,7 +16,6 @@ type Config struct {
 	Password   string `yaml:"password" env:"REDIS_PASSWORD" default:""`
 	GroupCount int    `yaml:"groupCount" env:"REDIS_GROUP_COUNT" default:"1"`
 }
-
 type RedisClient interface {
 	AddMessage(ctx context.Context, groupID int, conversationID uuid.UUID, message interface{}) error
 	Handle(ctx context.Context, callback RedisMessageHandler, handlerName string) error
@@ -33,7 +32,6 @@ func Init(ctx context.Context, cfg Config) (RedisClient, error) {
 	conn := redis.NewClient(&redis.Options{
 		Addr:     cfg.Addr,
 		Password: cfg.Password,
-		DB:       0,
 	})
 
 	pong, err := conn.Ping(ctx).Result()

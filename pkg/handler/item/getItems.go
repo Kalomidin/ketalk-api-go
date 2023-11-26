@@ -34,16 +34,18 @@ func (h *HttpHandler) GetItems(ctx *gin.Context, r *http.Request) (interface{}, 
 }
 
 func (h *handler) GetItems(ctx *gin.Context) (*GetItemsResponse, error) {
-	geofenceID := ctx.Param("geofenceId")
-
+	location, err := common.GetLocation(ctx.Request)
+	if err != nil {
+		return nil, err
+	}
 	userID, err := common.GetUserId(ctx.Request.Context())
 	if err != nil {
 		return nil, err
 	}
 
 	req := item_manager.GetItemsRequest{
-		GeofenceID: geofenceID,
-		UserID:     userID,
+		Location: *location,
+		UserID:   userID,
 	}
 	resp, err := h.manager.GetItems(ctx, req)
 	if err != nil {

@@ -39,6 +39,8 @@ func (r *geofenceRepository) FindGeofeceByLocation(ctx context.Context, location
 }
 
 func (r *geofenceRepository) Migrate() error {
+	if err := r.Exec("CREATE EXTENSION IF NOT EXISTS postgis").Error; err != nil {
+		return err
+	}
 	return r.AutoMigrate(&Geofence{})
-	// return nil
 }

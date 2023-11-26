@@ -21,6 +21,7 @@ configs/certs/
 !.vscode/extensions.json
 *.code-workspace
 .history/
+k8s-config/
 
 # IntelliJ
 *.iml

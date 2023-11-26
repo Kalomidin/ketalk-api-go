@@ -39,6 +39,11 @@ func NewItemManager(itemRepository repository.ItemRepository, itemImageRepositor
 }
 
 func (m *itemManager) AddItem(ctx context.Context, item AddItemRequest) (*AddItemResponse, error) {
+	geofence, err := m.geofencePort.GetGeofenceByLocation(ctx, item.Location)
+	if err != nil {
+		return nil, err
+	}
+
 	repoItem := repository.Item{
 		Title:       item.Title,
 		Description: item.Description,
@@ -49,13 +54,13 @@ func (m *itemManager) AddItem(ctx context.Context, item AddItemRequest) (*AddIte
 		Negotiable:  item.Negotiable,
 		KaratID:     item.KaratID,
 		CategoryID:  item.CategoryID,
-		GeofenceID:  item.GeofenceID,
+		GeofenceID:  geofence.ID,
 		ItemStatus:  string(ItemStatusActive),
 	}
-	err := m.itemRepository.AddItem(ctx, &repoItem)
-	if err != nil {
+	if err = m.itemRepository.AddItem(ctx, &repoItem); err != nil {
 		return nil, err
 	}
+
 	var images []repository.ItemImage = make([]repository.ItemImage, len(item.Images))
 	for i, image := range item.Images {
 		key := fmt.Sprintf("%+v_%s", time.Now().UTC().UnixNano(), item.Images[i])
@@ -90,7 +95,12 @@ func (m *itemManager) AddItem(ctx context.Context, item AddItemRequest) (*AddIte
 }
 
 func (m *itemManager) GetItems(ctx context.Context, req GetItemsRequest) ([]ItemBlock, error) {
-	items, err := m.itemRepository.GetItems(ctx, req.GeofenceID, req.UserID)
+	geofence, err := m.geofencePort.GetGeofenceByLocation(ctx, req.Location)
+	if err != nil {
+		return nil, err
+	}
+
+	items, err := m.itemRepository.GetItems(ctx, geofence.ID, req.UserID)
 	if err != nil {
 		return nil, err
 	}

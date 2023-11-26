@@ -52,7 +52,7 @@ func (r *itemRepository) Update(ctx context.Context, item *Item) error {
 	return nil
 }
 
-func (r *itemRepository) GetItems(ctx context.Context, GeofenceID string, userID uuid.UUID) ([]Item, error) {
+func (r *itemRepository) GetItems(ctx context.Context, GeofenceID uuid.UUID, userID uuid.UUID) ([]Item, error) {
 	var items []Item = make([]Item, 0)
 	resp := r.Where("geofence_id = ? AND owner_id != ?", GeofenceID, userID).Find(&items)
 	if resp.Error != nil {
