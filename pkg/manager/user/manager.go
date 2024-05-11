@@ -6,7 +6,6 @@ import (
 	"ketalk-api/pkg/manager/port"
 	"ketalk-api/pkg/manager/user/repository"
 	"ketalk-api/storage"
-	"strings"
 
 	"github.com/google/uuid"
 )
@@ -34,12 +33,8 @@ func (m *userManager) GetUser(ctx context.Context, userID uuid.UUID) (*User, err
 	}
 	var url *string
 	if user.Image != nil {
-		if strings.Contains(*user.Image, "http") {
-			url = user.Image
-		} else {
-			imageUrl := m.azureBlobStorage.GetFrontDoorUrl(*user.Image, storage.ContainerProfiles)
-			url = &imageUrl
-		}
+		image := m.azureBlobStorage.GetUserImage(*user.Image)
+		url = &image
 	}
 	userGeofence, err := m.userGeofenceRepository.GetUserGeofence(ctx, userID)
 	if err != nil {

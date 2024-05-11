@@ -3,6 +3,7 @@ package storage
 import (
 	"fmt"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/Azure/azure-storage-blob-go/azblob"
@@ -17,6 +18,7 @@ type AzureBlobStorage interface {
 	GeneratePresignedUrlToUpload(imageUrl, containerName string) (string, error)
 	// GeneratePresignedUrlToRead(imageUrl, containerName string) (string, error)
 	GetFrontDoorUrl(imageUrl, containerName string) string
+	GetUserImage(image string) string
 }
 
 type AzureBlobStorageConfig struct {
@@ -89,4 +91,11 @@ func (az *azureBlobStorage) generatePresignedUrl(imageName, containerName string
 	sasURL.RawQuery = sasQueryParams.Encode()
 
 	return sasURL.String(), nil
+}
+
+func (az *azureBlobStorage) GetUserImage(image string) string {
+	if strings.Contains(image, "http") {
+		return image
+	}
+	return az.GetFrontDoorUrl(image, ContainerProfiles)
 }

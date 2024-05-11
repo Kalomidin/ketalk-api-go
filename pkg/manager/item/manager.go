@@ -573,8 +573,8 @@ func (m *itemManager) GetItemBuyers(ctx context.Context, req GetItemBuyersReques
 		}
 		var avatar *string
 		if user.Image != nil {
-			url := m.blobStorage.GetFrontDoorUrl(*user.Image, storage.ContainerProfiles)
-			avatar = &url
+			image := m.blobStorage.GetUserImage(*user.Image)
+			avatar = &image
 		}
 		resp[i] = ItemBuyer{
 			ID:             conversation.ID,
