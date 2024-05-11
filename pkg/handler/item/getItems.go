@@ -38,8 +38,10 @@ func (h *handler) GetItems(ctx *gin.Context) (*GetItemsResponse, error) {
 	if err != nil {
 		return nil, err
 	}
-	userID, _ := common.GetUserId(ctx.Request.Context())
-
+	userID, err := common.GetUserId(ctx.Request.Context())
+	if err != nil {
+		return nil, err
+	}
 	req := item_manager.GetItemsRequest{
 		Location: *location,
 		UserID:   userID,
