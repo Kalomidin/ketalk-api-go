@@ -35,7 +35,8 @@ func (r *userItemRepository) Insert(ctx context.Context, userItem *UserItem) err
 
 func (r *userItemRepository) Update(ctx context.Context, userItem *UserItem) error {
 	res := r.Model(userItem).Where("id = ?", userItem.ID).Updates(map[string]interface{}{
-		"is_favorite": userItem.IsFavorite,
+		"is_favorite":  userItem.IsFavorite,
+		"is_purchased": userItem.IsPurchased,
 	})
 	if res.Error != nil {
 		return res.Error

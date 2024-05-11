@@ -566,6 +566,7 @@ func (m *itemManager) GetItemBuyers(ctx context.Context, req GetItemBuyersReques
 				continue
 			}
 			member = m
+			break
 		}
 		user, err := m.userPort.GetUser(ctx, member.MemberID)
 		if err != nil {
@@ -577,7 +578,7 @@ func (m *itemManager) GetItemBuyers(ctx context.Context, req GetItemBuyersReques
 			avatar = &image
 		}
 		resp[i] = ItemBuyer{
-			ID:             conversation.ID,
+			ID:             member.MemberID,
 			Name:           user.Username,
 			Avatar:         avatar,
 			LastMessagedAt: conversation.LastMessagedAt,
