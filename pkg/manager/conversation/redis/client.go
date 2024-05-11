@@ -2,6 +2,7 @@ package conn_redis
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"log"
 	"math/big"
@@ -12,9 +13,10 @@ import (
 )
 
 type Config struct {
-	Addr       string `yaml:"addr" env:"REDIS_ADDR" default:"localhost:6379"`
-	Password   string `yaml:"password" env:"REDIS_PASSWORD" default:""`
-	GroupCount int    `yaml:"groupCount" env:"REDIS_GROUP_COUNT" default:"1"`
+	Addr       string `yaml:"addr" env:"REDIS_ADDR" env-default:"localhost:6379"`
+	Password   string `yaml:"password" env:"REDIS_PASSWORD" env-default:""`
+	GroupCount int    `yaml:"groupCount" env:"REDIS_GROUP_COUNT" env-default:"1"`
+	Env        string `yaml:"env" env:"ENV" env-default:"local"`
 }
 type RedisClient interface {
 	AddMessage(ctx context.Context, groupID int, conversationID uuid.UUID, message interface{}) error
@@ -29,9 +31,17 @@ type redisClient struct {
 }
 
 func Init(ctx context.Context, cfg Config) (RedisClient, error) {
+	tlsConfig := &tls.Config{
+		MinVersion: tls.VersionTLS12,
+	}
+	if cfg.Env == "local" {
+		tlsConfig = nil
+	}
+
 	conn := redis.NewClient(&redis.Options{
-		Addr:     cfg.Addr,
-		Password: cfg.Password,
+		Addr:      cfg.Addr,
+		Password:  cfg.Password,
+		TLSConfig: tlsConfig,
 	})
 
 	pong, err := conn.Ping(ctx).Result()

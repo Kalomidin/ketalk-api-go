@@ -146,7 +146,7 @@ func (c *conversationManager) GetConversations(ctx context.Context, request GetC
 			continue
 		}
 
-		thumbnail := c.blobStorage.GetFrontDoorUrl(coverImage)
+		thumbnail := c.blobStorage.GetFrontDoorUrl(coverImage, storage.ContainerProfiles)
 
 		// get the secondary user image url
 		var secondaryUserImageUrl string
@@ -155,7 +155,7 @@ func (c *conversationManager) GetConversations(ctx context.Context, request GetC
 			image = secondMember.Image
 		}
 		if image != nil {
-			url := c.blobStorage.GetFrontDoorUrl(*image)
+			url := c.blobStorage.GetFrontDoorUrl(*image, storage.ContainerProfiles)
 			secondaryUserImageUrl = url
 		}
 
@@ -217,7 +217,7 @@ func (c *conversationManager) GetMembers(ctx context.Context, request GetMembers
 		}
 		var url *string
 		if user.Image != nil {
-			imageUrl := c.blobStorage.GetFrontDoorUrl(*user.Image)
+			imageUrl := c.blobStorage.GetFrontDoorUrl(*user.Image, storage.ContainerProfiles)
 			url = &imageUrl
 		}
 		resp[i] = Member{

@@ -9,6 +9,7 @@ import (
 
 type Middleware interface {
 	AuthMiddleware(cfg jwt.Config) gin.HandlerFunc
+	HttpMiddleware() gin.HandlerFunc
 	ValidateUserAuthorization(ctx context.Context) error
 	HandlerWithAuth(handler HandlerFunc) HandlerFunc
 }

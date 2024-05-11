@@ -55,7 +55,7 @@ func run(ctx context.Context, cfg Config) error {
 		return err
 	}
 	router.Use(middleware.AuthMiddleware(cfg.Config.Auth))
-
+	router.Use(middleware.HttpMiddleware()) // not sure why i added ??
 	if err := handler.InitHandlers(ctx, middleware, redis, router, cfg.Config); err != nil {
 		return err
 	}

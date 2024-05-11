@@ -77,3 +77,28 @@ func (m *middleware) HandlerWithAuth(handler common.HandlerFunc) common.HandlerF
 		return handler(ctx, req)
 	}
 }
+
+func (m *middleware) HttpMiddleware() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		ctx.Writer = &responseWriter{ctx.Writer}
+		ctx.Next()
+	}
+}
+
+type responseWriter struct {
+	gin.ResponseWriter
+}
+
+func (w *responseWriter) Write(b []byte) (int, error) {
+	fmt.Printf("writing response: %+v\n", string(b))
+	cnt, err := w.ResponseWriter.Write(b)
+	return cnt, err
+}
+
+func (w *responseWriter) Header() http.Header {
+	return w.ResponseWriter.Header()
+}
+
+func (w *responseWriter) WriteHeader(statusCode int) {
+	w.ResponseWriter.WriteHeader(statusCode)
+}

@@ -44,16 +44,17 @@ func (c *HttpHandler) Init(ctx context.Context, router *gin.Engine) {
 			"/:id/incrementConversation": c.middleware.HandlerWithAuth(c.IncrementConversationCount),
 		},
 		"GET": {
-			"/all":         c.middleware.HandlerWithAuth(c.GetItems),
-			"/:id":         c.middleware.HandlerWithAuth(c.GetItem),
-			"/favorite":    c.middleware.HandlerWithAuth(c.GetFavoriteItems),
-			"/purchase":    c.middleware.HandlerWithAuth(c.GetPurchasedItems),
-			"/user":        c.middleware.HandlerWithAuth(c.GetUserItems),
 			"/karats":      c.GetAllKarats,
 			"/categories":  c.GetAllCategories,
 			"/:id/similar": c.GetSimilarItems,
-			"/:id/buyer":   c.middleware.HandlerWithAuth(c.GetItemBuyers),
+			"/all":         c.GetItems,
+			"/:id":         c.GetItem,
 			"/search":      c.SearchItems,
+
+			"/favorite":  c.middleware.HandlerWithAuth(c.GetFavoriteItems),
+			"/purchase":  c.middleware.HandlerWithAuth(c.GetPurchasedItems),
+			"/user":      c.middleware.HandlerWithAuth(c.GetUserItems),
+			"/:id/buyer": c.middleware.HandlerWithAuth(c.GetItemBuyers),
 		},
 		"DELETE": {
 			"/:id": c.middleware.HandlerWithAuth(c.DeleteItem),

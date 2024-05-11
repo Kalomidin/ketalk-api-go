@@ -76,7 +76,7 @@ func (m *itemManager) AddItem(ctx context.Context, item AddItemRequest) (*AddIte
 
 	var generatedUrls []ImageUploadUrlWithName = make([]ImageUploadUrlWithName, 0)
 	for i, image := range images {
-		url, err := m.blobStorage.GeneratePresignedUrlToUpload(image.Key)
+		url, err := m.blobStorage.GeneratePresignedUrlToUpload(image.Key, storage.ContainerItems)
 		if err != nil {
 			continue
 		}
@@ -124,7 +124,7 @@ func (m *itemManager) GetItem(ctx context.Context, req GetItemRequest) (*GetItem
 	var images []ItemImage = make([]ItemImage, len(itemImages))
 	var thumbnail string
 	for i, image := range itemImages {
-		url := m.blobStorage.GetFrontDoorUrl(image.Key)
+		url := m.blobStorage.GetFrontDoorUrl(image.Key, storage.ContainerItems)
 		if image.IsCover {
 			thumbnail = url
 		}
@@ -146,7 +146,7 @@ func (m *itemManager) GetItem(ctx context.Context, req GetItemRequest) (*GetItem
 
 	var ownerAvatar *string
 	if owner.Image != nil {
-		url := m.blobStorage.GetFrontDoorUrl(*owner.Image)
+		url := m.blobStorage.GetFrontDoorUrl(*owner.Image, storage.ContainerProfiles)
 		ownerAvatar = &url
 	}
 	isUserFavorite := false
@@ -207,7 +207,7 @@ func (m *itemManager) GetFavoriteItems(ctx context.Context, r GetFavoriteItemsRe
 		if err != nil {
 			continue
 		}
-		thumbnail := m.blobStorage.GetFrontDoorUrl(image.Key)
+		thumbnail := m.blobStorage.GetFrontDoorUrl(image.Key, storage.ContainerItems)
 
 		resp = append(resp, ItemBlock{
 			ID:            item.ID,
@@ -271,7 +271,7 @@ func (m *itemManager) GetUserItems(ctx context.Context, req GetUserItemsRequest)
 		if err != nil {
 			continue
 		}
-		thumbnail := m.blobStorage.GetFrontDoorUrl(image.Key)
+		thumbnail := m.blobStorage.GetFrontDoorUrl(image.Key, storage.ContainerItems)
 
 		resp = append(resp, ItemBlock{
 			ID:            item.ID,
@@ -302,7 +302,7 @@ func (m *itemManager) GetPurchasedItems(ctx context.Context, req GetPurchasedIte
 		if err != nil {
 			continue
 		}
-		thumbnail := m.blobStorage.GetFrontDoorUrl(image.Key)
+		thumbnail := m.blobStorage.GetFrontDoorUrl(image.Key, storage.ContainerItems)
 
 		resp = append(resp, ItemBlock{
 			ID:            item.ID,
@@ -414,7 +414,7 @@ func (m *itemManager) UpdateItem(ctx context.Context, req UpdateItemRequest) (*U
 		}
 		// generate presigned urls
 		for i, image := range newImagesRepo {
-			uploadUrl, err := m.blobStorage.GeneratePresignedUrlToUpload(image.Key)
+			uploadUrl, err := m.blobStorage.GeneratePresignedUrlToUpload(image.Key, storage.ContainerItems)
 			if err != nil {
 				continue
 			}
@@ -573,7 +573,7 @@ func (m *itemManager) GetItemBuyers(ctx context.Context, req GetItemBuyersReques
 		}
 		var avatar *string
 		if user.Image != nil {
-			url := m.blobStorage.GetFrontDoorUrl(*user.Image)
+			url := m.blobStorage.GetFrontDoorUrl(*user.Image, storage.ContainerProfiles)
 			avatar = &url
 		}
 		resp[i] = ItemBuyer{
@@ -635,7 +635,7 @@ func (m *itemManager) repoItemIntoItemBlocks(ctx context.Context, repoItems []re
 		if err != nil {
 			continue
 		}
-		thumbnail := m.blobStorage.GetFrontDoorUrl(image.Key)
+		thumbnail := m.blobStorage.GetFrontDoorUrl(image.Key, storage.ContainerItems)
 
 		userOtherItems[i] = ItemBlock{
 			ID:            item.ID,

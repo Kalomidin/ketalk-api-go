@@ -37,7 +37,7 @@ func (m *userManager) GetUser(ctx context.Context, userID uuid.UUID) (*User, err
 		if strings.Contains(*user.Image, "http") {
 			url = user.Image
 		} else {
-			imageUrl := m.azureBlobStorage.GetFrontDoorUrl(*user.Image)
+			imageUrl := m.azureBlobStorage.GetFrontDoorUrl(*user.Image, storage.ContainerProfiles)
 			url = &imageUrl
 		}
 	}
@@ -102,7 +102,7 @@ func (m *userManager) Update(ctx context.Context, req UpdateUserRequest) (*User,
 
 func (m *userManager) GetPresignedUrl(ctx context.Context, req GetPresignedUrlRequest) (*GetPresignedUrlResponse, error) {
 	blob := fmt.Sprintf("%s/%s", req.UserID, uuid.New())
-	url, err := m.azureBlobStorage.GeneratePresignedUrlToUpload(blob)
+	url, err := m.azureBlobStorage.GeneratePresignedUrlToUpload(blob, storage.ContainerProfiles)
 	if err != nil {
 		return nil, err
 	}

@@ -8,17 +8,22 @@ import (
 	"github.com/Azure/azure-storage-blob-go/azblob"
 )
 
+const (
+	ContainerProfiles = "profiles"
+	ContainerItems    = "items"
+)
+
 type AzureBlobStorage interface {
-	GeneratePresignedUrlToUpload(imageUrl string) (string, error)
-	GeneratePresignedUrlToRead(imageUrl string) (string, error)
-	GetFrontDoorUrl(imageName string) string
+	GeneratePresignedUrlToUpload(imageUrl, containerName string) (string, error)
+	// GeneratePresignedUrlToRead(imageUrl, containerName string) (string, error)
+	GetFrontDoorUrl(imageUrl, containerName string) string
 }
 
 type AzureBlobStorageConfig struct {
-	AccountName   string `yaml:"accountName" env:"AZURE_BLOB_ACCOUNT_NAME" env-default:""`
-	FrontDoorUrl  string `yaml:"frontDoorUrl" env:"AZURE_BLOB_FRONT_DOOR_URL" env-default:""`
-	AccountKey    string `yaml:"accountKey" env:"AZURE_BLOB_ACCOUNT_KEY" env-default:""`
-	ContainerName string `yaml:"containerName" env:"AZURE_BLOB_CONTAINER_NAME" env-default:""`
+	AccountName  string `yaml:"accountName" env:"AZURE_BLOB_ACCOUNT_NAME" env-default:""`
+	FrontDoorUrl string `yaml:"frontDoorUrl" env:"AZURE_BLOB_FRONT_DOOR_URL" env-default:""`
+	BlobUrl      string `yaml:"blobUrl" env:"AZURE_BLOB_URL" env-default:""`
+	AccountKey   string `yaml:"accountKey" env:"AZURE_BLOB_ACCOUNT_KEY" env-default:""`
 }
 
 type azureBlobStorage struct {
@@ -31,19 +36,23 @@ func NewAzureBlobStorage(cfg AzureBlobStorageConfig) AzureBlobStorage {
 	}
 }
 
-func (az *azureBlobStorage) GeneratePresignedUrlToUpload(imageName string) (string, error) {
-	return az.generatePresignedUrl(imageName, azblob.BlobSASPermissions{Write: true, Permissions: true})
+func (az *azureBlobStorage) GeneratePresignedUrlToUpload(imageUrl, containerName string) (string, error) {
+	return az.generatePresignedUrl(imageUrl, containerName, azblob.BlobSASPermissions{Write: true, Permissions: true})
 }
 
-func (az *azureBlobStorage) GeneratePresignedUrlToRead(imageName string) (string, error) {
-	return az.generatePresignedUrl(imageName, azblob.BlobSASPermissions{Read: true, Permissions: true})
+// func (az *azureBlobStorage) GeneratePresignedUrlToRead(imageUrl, containerName string) (string, error) {
+// 	return az.generatePresignedUrl(imageUrl, containerName, azblob.BlobSASPermissions{Read: true, Permissions: true})
+// }
+
+func (az *azureBlobStorage) GetFrontDoorUrl(imageUrl, containerName string) string {
+	// return fmt.Sprintf("https://%s/%s/%s", az.BlobUrl, containerName, imageUrl)
+	// TODO: use front door url
+	url, _ := az.generatePresignedUrl(imageUrl, containerName, azblob.BlobSASPermissions{Read: true, Permissions: true})
+	return url
+	// return fmt.Sprintf("http://%s/%s/%s", az.FrontDoorUrl, containerName, imageUrl)
 }
 
-func (az *azureBlobStorage) GetFrontDoorUrl(imageName string) string {
-	return fmt.Sprintf("http://%s/%s/%s", az.FrontDoorUrl, az.ContainerName, imageName)
-}
-
-func (az *azureBlobStorage) generatePresignedUrl(imageName string, accessPolicy azblob.BlobSASPermissions) (string, error) {
+func (az *azureBlobStorage) generatePresignedUrl(imageName, containerName string, accessPolicy azblob.BlobSASPermissions) (string, error) {
 	credential, err := azblob.NewSharedKeyCredential(az.AccountName, az.AccountKey)
 	if err != nil {
 		return "", err
@@ -57,7 +66,7 @@ func (az *azureBlobStorage) generatePresignedUrl(imageName string, accessPolicy 
 		azblob.NewPipeline(credential, azblob.PipelineOptions{}),
 	)
 
-	containerURL := serviceURL.NewContainerURL(az.ContainerName)
+	containerURL := serviceURL.NewContainerURL(containerName)
 
 	blobURL := containerURL.NewBlobURL(imageName)
 
@@ -68,7 +77,7 @@ func (az *azureBlobStorage) generatePresignedUrl(imageName string, accessPolicy 
 		Protocol:      azblob.SASProtocolHTTPS,
 		StartTime:     start.UTC(),
 		ExpiryTime:    expiry.UTC(),
-		ContainerName: az.ContainerName,
+		ContainerName: containerName,
 		BlobName:      imageName,
 		Permissions:   accessPolicy.String(),
 	}.NewSASQueryParameters(credential)
