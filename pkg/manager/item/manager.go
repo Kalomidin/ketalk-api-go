@@ -21,10 +21,10 @@ type itemManager struct {
 	userPort            port.UserPort
 	conversationPort    port.ConversationPort
 	geofencePort        port.GeofencePort
-	blobStorage         storage.AzureBlobStorage
+	blobStorage         storage.Storage
 }
 
-func NewItemManager(itemRepository repository.ItemRepository, itemImageRepository repository.ItemImageRepository, userItemRepository repository.UserItemRepository, karatRepository repository.KaratRepository, categoryRepository repository.CategoryRepository, userPort port.UserPort, conversationPort port.ConversationPort, geofencePort port.GeofencePort, azureBlobStorage storage.AzureBlobStorage) ItemManager {
+func NewItemManager(itemRepository repository.ItemRepository, itemImageRepository repository.ItemImageRepository, userItemRepository repository.UserItemRepository, karatRepository repository.KaratRepository, categoryRepository repository.CategoryRepository, userPort port.UserPort, conversationPort port.ConversationPort, geofencePort port.GeofencePort, azureBlobStorage storage.Storage) ItemManager {
 	return &itemManager{
 		itemRepository,
 		itemImageRepository,
@@ -76,7 +76,7 @@ func (m *itemManager) AddItem(ctx context.Context, item AddItemRequest) (*AddIte
 
 	var generatedUrls []ImageUploadUrlWithName = make([]ImageUploadUrlWithName, 0)
 	for i, image := range images {
-		url, err := m.blobStorage.GeneratePresignedUrlToUpload(image.Key, storage.ContainerItems)
+		url, err := m.blobStorage.GeneratePresignedUrlToUpload(ctx, image.Key, storage.ContainerItems)
 		if err != nil {
 			continue
 		}
@@ -124,7 +124,7 @@ func (m *itemManager) GetItem(ctx context.Context, req GetItemRequest) (*GetItem
 	var images []ItemImage = make([]ItemImage, len(itemImages))
 	var thumbnail string
 	for i, image := range itemImages {
-		url := m.blobStorage.GetFrontDoorUrl(image.Key, storage.ContainerItems)
+		url := m.blobStorage.GetURLToRead(image.Key, storage.ContainerItems)
 		if image.IsCover {
 			thumbnail = url
 		}
@@ -146,7 +146,7 @@ func (m *itemManager) GetItem(ctx context.Context, req GetItemRequest) (*GetItem
 
 	var ownerAvatar *string
 	if owner.Image != nil {
-		url := m.blobStorage.GetFrontDoorUrl(*owner.Image, storage.ContainerProfiles)
+		url := m.blobStorage.GetURLToRead(*owner.Image, storage.ContainerProfiles)
 		ownerAvatar = &url
 	}
 	isUserFavorite := false
@@ -207,7 +207,7 @@ func (m *itemManager) GetFavoriteItems(ctx context.Context, r GetFavoriteItemsRe
 		if err != nil {
 			continue
 		}
-		thumbnail := m.blobStorage.GetFrontDoorUrl(image.Key, storage.ContainerItems)
+		thumbnail := m.blobStorage.GetURLToRead(image.Key, storage.ContainerItems)
 
 		resp = append(resp, ItemBlock{
 			ID:            item.ID,
@@ -271,7 +271,7 @@ func (m *itemManager) GetUserItems(ctx context.Context, req GetUserItemsRequest)
 		if err != nil {
 			continue
 		}
-		thumbnail := m.blobStorage.GetFrontDoorUrl(image.Key, storage.ContainerItems)
+		thumbnail := m.blobStorage.GetURLToRead(image.Key, storage.ContainerItems)
 
 		resp = append(resp, ItemBlock{
 			ID:            item.ID,
@@ -302,7 +302,7 @@ func (m *itemManager) GetPurchasedItems(ctx context.Context, req GetPurchasedIte
 		if err != nil {
 			continue
 		}
-		thumbnail := m.blobStorage.GetFrontDoorUrl(image.Key, storage.ContainerItems)
+		thumbnail := m.blobStorage.GetURLToRead(image.Key, storage.ContainerItems)
 
 		resp = append(resp, ItemBlock{
 			ID:            item.ID,
@@ -414,7 +414,7 @@ func (m *itemManager) UpdateItem(ctx context.Context, req UpdateItemRequest) (*U
 		}
 		// generate presigned urls
 		for i, image := range newImagesRepo {
-			uploadUrl, err := m.blobStorage.GeneratePresignedUrlToUpload(image.Key, storage.ContainerItems)
+			uploadUrl, err := m.blobStorage.GeneratePresignedUrlToUpload(ctx, image.Key, storage.ContainerItems)
 			if err != nil {
 				continue
 			}
@@ -636,7 +636,7 @@ func (m *itemManager) repoItemIntoItemBlocks(ctx context.Context, repoItems []re
 		if err != nil {
 			continue
 		}
-		thumbnail := m.blobStorage.GetFrontDoorUrl(image.Key, storage.ContainerItems)
+		thumbnail := m.blobStorage.GetURLToRead(image.Key, storage.ContainerItems)
 
 		userOtherItems[i] = ItemBlock{
 			ID:            item.ID,

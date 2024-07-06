@@ -14,10 +14,10 @@ type userManager struct {
 	repository             repository.Repository
 	userGeofenceRepository repository.UserGeofenceRepository
 	geofencePort           port.GeofencePort
-	azureBlobStorage       storage.AzureBlobStorage
+	azureBlobStorage       storage.Storage
 }
 
-func NewUserManager(repository repository.Repository, userGeofenceRepository repository.UserGeofenceRepository, geofencePort port.GeofencePort, azureBlobStorage storage.AzureBlobStorage) UserManager {
+func NewUserManager(repository repository.Repository, userGeofenceRepository repository.UserGeofenceRepository, geofencePort port.GeofencePort, azureBlobStorage storage.Storage) UserManager {
 	return &userManager{
 		repository,
 		userGeofenceRepository,
@@ -97,7 +97,7 @@ func (m *userManager) Update(ctx context.Context, req UpdateUserRequest) (*User,
 
 func (m *userManager) GetPresignedUrl(ctx context.Context, req GetPresignedUrlRequest) (*GetPresignedUrlResponse, error) {
 	blob := fmt.Sprintf("%s/%s", req.UserID, uuid.New())
-	url, err := m.azureBlobStorage.GeneratePresignedUrlToUpload(blob, storage.ContainerProfiles)
+	url, err := m.azureBlobStorage.GeneratePresignedUrlToUpload(ctx, blob, storage.ContainerProfiles)
 	if err != nil {
 		return nil, err
 	}

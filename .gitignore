@@ -34,3 +34,9 @@ k8s-config/
 .LSOverride
 *tags*
 cmd/ketalk-api/__debug*
+.terraform*
+terraform/
+.env
+main
+ngrokconfig.yaml
+ngrok.yml

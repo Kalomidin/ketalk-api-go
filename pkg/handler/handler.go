@@ -60,7 +60,7 @@ func InitHandlers(
 	if err != nil {
 		return err
 	}
-	blobStorage := storage.NewAzureBlobStorage(cfg.AzureBlobStorage)
+	blobStorage := storage.NewR2CloudFlare(ctx, &cfg.R2Storage)
 
 	userRepo := user_repo.NewRepository(ctx, db)
 	authRepo := auth_repo.NewRepository(ctx, db)

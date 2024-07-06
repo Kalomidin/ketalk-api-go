@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	conn_redis "ketalk-api/pkg/manager/conversation/redis"
 	"ketalk-api/pkg/manager/conversation/repository"
 	"ketalk-api/pkg/manager/conversation/ws"
@@ -18,7 +19,7 @@ type conversationManager struct {
 	memberRepo       repository.MemberRepository
 	messageRepo      repository.MessageRepository
 	itemPort         port.ItemPort
-	blobStorage      storage.AzureBlobStorage
+	blobStorage      storage.Storage
 	userPort         port.UserPort
 	redis            conn_redis.RedisClient
 }
@@ -29,7 +30,7 @@ func NewConversationManager(
 	memberRepo repository.MemberRepository,
 	messageRepo repository.MessageRepository,
 	itemPort port.ItemPort,
-	blobStorage storage.AzureBlobStorage,
+	blobStorage storage.Storage,
 	userPort port.UserPort,
 	redisClient conn_redis.RedisClient,
 ) ConversationManager {
@@ -44,6 +45,7 @@ func NewConversationManager(
 	}
 
 	// start a task to read from redis and write into db
+	fmt.Println("starting redis message handler")
 	go redisClient.Handle(ctx, connManager.AddMessage, "db")
 
 	return &connManager
@@ -146,7 +148,7 @@ func (c *conversationManager) GetConversations(ctx context.Context, request GetC
 			continue
 		}
 
-		thumbnail := c.blobStorage.GetFrontDoorUrl(coverImage, storage.ContainerItems)
+		thumbnail := c.blobStorage.GetURLToRead(coverImage, storage.ContainerItems)
 
 		// get the secondary user image url
 		var secondaryUserImageUrl string

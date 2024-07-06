@@ -81,8 +81,6 @@ func (c *redisClient) AddMessage(ctx context.Context, groupID int, conversationI
 }
 
 func (c *redisClient) Handle(ctx context.Context, callback RedisMessageHandler, handlerName string) error {
-	fmt.Printf("subs for handling redis messages is running\n")
-
 	var wg sync.WaitGroup
 
 	var subs []*redis.PubSub = make([]*redis.PubSub, c.cfg.GroupCount)

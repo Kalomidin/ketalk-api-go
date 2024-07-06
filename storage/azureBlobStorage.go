@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"strings"
@@ -14,10 +15,10 @@ const (
 	ContainerItems    = "items"
 )
 
-type AzureBlobStorage interface {
-	GeneratePresignedUrlToUpload(imageUrl, containerName string) (string, error)
+type Storage interface {
+	GeneratePresignedUrlToUpload(ctx context.Context, imageUrl, containerName string) (string, error)
 	// GeneratePresignedUrlToRead(imageUrl, containerName string) (string, error)
-	GetFrontDoorUrl(imageUrl, containerName string) string
+	GetURLToRead(imageUrl, containerName string) string
 	GetUserImage(image string) string
 }
 
@@ -32,13 +33,13 @@ type azureBlobStorage struct {
 	AzureBlobStorageConfig
 }
 
-func NewAzureBlobStorage(cfg AzureBlobStorageConfig) AzureBlobStorage {
+func NewAzureBlobStorage(cfg AzureBlobStorageConfig) Storage {
 	return &azureBlobStorage{
 		cfg,
 	}
 }
 
-func (az *azureBlobStorage) GeneratePresignedUrlToUpload(imageUrl, containerName string) (string, error) {
+func (az *azureBlobStorage) GeneratePresignedUrlToUpload(ctx context.Context, imageUrl, containerName string) (string, error) {
 	return az.generatePresignedUrl(imageUrl, containerName, azblob.BlobSASPermissions{Write: true, Permissions: true})
 }
 
@@ -46,10 +47,13 @@ func (az *azureBlobStorage) GeneratePresignedUrlToUpload(imageUrl, containerName
 // 	return az.generatePresignedUrl(imageUrl, containerName, azblob.BlobSASPermissions{Read: true, Permissions: true})
 // }
 
-func (az *azureBlobStorage) GetFrontDoorUrl(imageUrl, containerName string) string {
+func (az *azureBlobStorage) GetURLToRead(imageUrl, containerName string) string {
 	// return fmt.Sprintf("https://%s/%s/%s", az.BlobUrl, containerName, imageUrl)
 	// TODO: use front door url
-	url, _ := az.generatePresignedUrl(imageUrl, containerName, azblob.BlobSASPermissions{Read: true, Permissions: true})
+	url, err := az.generatePresignedUrl(imageUrl, containerName, azblob.BlobSASPermissions{Read: true, Permissions: true})
+	if err != nil {
+		fmt.Println("Error generating presigned url", err)
+	}
 	return url
 	// return fmt.Sprintf("http://%s/%s/%s", az.FrontDoorUrl, containerName, imageUrl)
 }
@@ -97,5 +101,5 @@ func (az *azureBlobStorage) GetUserImage(image string) string {
 	if strings.Contains(image, "http") {
 		return image
 	}
-	return az.GetFrontDoorUrl(image, ContainerProfiles)
+	return az.GetURLToRead(image, ContainerProfiles)
 }

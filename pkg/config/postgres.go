@@ -5,8 +5,7 @@ import (
 )
 
 type Postgres struct {
-	Alias   string `yaml:"alias"`
-	Address string `yaml:"address"     env:"PG_ADDRESS"   env-default:":5432"`
+	Alias string `yaml:"alias"`
 	// Database defaults to service name when value is ""
 	Host                 string        `yaml:"pghost"      env:"PG_HOST"      env-default:"localhost"`
 	Port                 string        `yaml:"port"        env:"PG_PORT"      env-default:"5432"`
@@ -22,10 +21,6 @@ type Postgres struct {
 
 func (cfg *Postgres) GetAlias() string {
 	return cfg.Alias
-}
-
-func (cfg *Postgres) GetAddress() string {
-	return cfg.Address
 }
 
 func (cfg *Postgres) GetHost() string {

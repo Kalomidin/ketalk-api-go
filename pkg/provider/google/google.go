@@ -13,7 +13,7 @@ import (
 
 type Config struct {
 	ID       string `yaml:"client_id" env:"GOOGLE_CLIENT_ID" env-default:""`
-	Secret   string `yaml:"client_secret" env:"CLIENT_SECRET" env-default:""`
+	Secret   string `yaml:"client_secret" env:"GOOGLE_CLIENT_SECRET" env-default:""`
 	Audience string `yaml:"google_token_audience" env:"GOOGLE_TOKEN_AUDIENCE"`
 }
 

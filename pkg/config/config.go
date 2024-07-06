@@ -12,6 +12,7 @@ type Config struct {
 	Google           google.Config                  `yaml:"google"`
 	Auth             jwt.Config                     `yaml:"auth"`
 	AzureBlobStorage storage.AzureBlobStorageConfig `yaml:"azure"`
+	R2Storage        storage.R2CloudFlareConfig     `yaml:"r2"`
 	DB               Postgres                       `yaml:"db"`
 	Redis            conn_redis.Config              `yaml:"redis"`
 	WebSocketServer  ws.Config                      `yaml:"ws"`

@@ -3,8 +3,10 @@ package main
 import (
 	"fmt"
 	"ketalk-api/pkg/config"
+	"log"
 
 	"github.com/ilyakaznacheev/cleanenv"
+	"github.com/joho/godotenv"
 )
 
 type Config struct {
@@ -22,10 +24,17 @@ func (cfg *Config) Load() error {
 		"dev.yaml",
 		"defaults.yaml",
 	}
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+	if err := cleanenv.ReadEnv(cfg); err != nil {
+		return err
+	}
 	for _, file := range files {
 		if err := cleanenv.ReadConfig(fmt.Sprintf("./%s/%s", dir, file), cfg); err == nil {
 			return nil
 		}
 	}
-	return cleanenv.ReadEnv(cfg)
+	return nil
 }
